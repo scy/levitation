@@ -1,0 +1,105 @@
+#!/usr/bin/env python
+
+import xml.dom.minidom
+from xml.parsers.expat import ParserCreate
+import codecs
+import datetime
+import os
+import sys
+
+READ_SIZE = 10240000
+
+def singletext(node):
+	if len(node.childNodes) == 0:
+		return ''
+	if len(node.childNodes) != 1:
+		raise Exception('singletext has wrong number of children' + node.toxml())
+	if node.childNodes[0].nodeType != node.TEXT_NODE:
+		raise Exception('singletext child is not text')
+	return node.childNodes[0].data
+
+class Revision:
+	def __init__(self, node):
+		self.id = -1
+		self.minor = False
+		self.timestamp = self.text = None
+		self.dom = node
+		for lv1 in self.dom.childNodes:
+			if lv1.nodeType != lv1.ELEMENT_NODE:
+				continue
+			if lv1.tagName == 'id':
+				self.id = int(singletext(lv1))
+			elif lv1.tagName == 'timestamp':
+				self.timestamp = datetime.datetime.strptime(singletext(lv1), "%Y-%m-%dT%H:%M:%SZ")
+			elif lv1.tagName == 'minor':
+				self.minor = True
+			elif lv1.tagName == 'text':
+				self.text = singletext(lv1)
+	def dump(self, title):
+		dir = self.timestamp.strftime('%Y/%m/%d/%H')
+		if not os.path.isdir(dir):
+			os.makedirs(dir)
+		fh = open(dir + '/' + self.timestamp.strftime('%M-%S-') + str(self.id) + '.mediawiki', 'w')
+		fh.write(self.dom.toxml().encode('UTF-8'))
+		fh.close()
+
+class Page:
+	def __init__(self, xmlstring):
+		self.revisions = []
+		self.id = -1
+		self.title = ''
+		self.dom = xml.dom.minidom.parseString(xmlstring.encode('UTF-8'))
+		for lv1 in self.dom.documentElement.childNodes:
+			if lv1.nodeType != lv1.ELEMENT_NODE:
+				continue
+			if lv1.tagName == 'title':
+				self.title = singletext(lv1)
+			elif lv1.tagName == 'id':
+				self.id = int(singletext(lv1))
+			elif lv1.tagName == 'revision':
+				self.revisions.append(Revision(lv1))
+	def dump(self):
+		print '   ' + self.title.encode('UTF-8')
+		for revision in self.revisions:
+			revision.dump(self.title)
+
+class XMLChunker:
+	def __init__(self, filename):
+		self.text = self.xml = None
+		self.inpage = False
+		self.startbyte = self.readbytes = 0
+		self.fh = codecs.open(filename, 'r', 'UTF-8')
+		self.expat = ParserCreate('UTF-8')
+		self.expat.StartElementHandler = self.find_page
+	def parse(self):
+		while True:
+			self.text = self.fh.read(READ_SIZE)
+			encoded = self.text.encode('UTF-8')
+			if not self.text:
+				break
+			self.startbyte = 0
+			self.expat.Parse(encoded)
+			if self.inpage:
+				self.xml += self.text.encode('UTF-8')[self.startbyte:].decode('UTF-8')
+			self.readbytes += len(encoded)
+		self.expat.Parse('', True)
+	def find_page(self, name, attrs):
+		if name == 'page':
+			self.inpage = True
+			self.expat.StartElementHandler = None
+			self.expat.EndElementHandler = self.find_pageend
+			self.startbyte = self.expat.CurrentByteIndex - self.readbytes
+			self.xml = u''
+	def find_pageend(self, name):
+		if name == 'page':
+			if not self.inpage:
+				raise Exception('not in page!')
+			self.inpage = False
+			self.expat.StartElementHandler = self.find_page
+			self.expat.EndElementHandler = None
+			self.xml += self.text.encode('UTF-8')[self.startbyte:self.expat.CurrentByteIndex-self.readbytes].decode('UTF-8') + '</' + name + '>'
+			Page(self.xml).dump()
+
+print "Step 1: Chunking by date."
+xc = XMLChunker(sys.argv[1])
+xc.parse()
