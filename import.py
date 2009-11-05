@@ -9,6 +9,9 @@ import sys
 import bz2
 
 READ_SIZE = 10240000
+DUMP_PATTERN = '%Y-%m-%d-%H-%M-%S-'
+DUMP_REVPATTERN = '%010d'
+DUMP_LEVELS = 4
 
 def singletext(node):
 	if len(node.childNodes) == 0:
@@ -37,10 +40,12 @@ class Revision:
 			elif lv1.tagName == 'text':
 				self.text = singletext(lv1)
 	def dump(self, title):
-		dir = self.timestamp.strftime('%Y/%m/%d/%H')
+		components = self.timestamp.strftime(DUMP_PATTERN).split('-', DUMP_LEVELS)
+		filename = components.pop() + (DUMP_REVPATTERN % self.id) + '.mediawiki'
+		dir = os.sep.join(components)
 		if not os.path.isdir(dir):
 			os.makedirs(dir)
-		fh = bz2.BZ2File(dir + '/' + self.timestamp.strftime('%M-%S-') + str(self.id) + '.mediawiki', 'w')
+		fh = bz2.BZ2File(os.path.join(dir, filename), 'w')
 		fh.write("%s\n" % title.encode('UTF-8'))
 		fh.write(self.dom.toxml().encode('UTF-8'))
 		fh.close()
