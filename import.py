@@ -40,6 +40,7 @@ class Revision:
 		if not os.path.isdir(dir):
 			os.makedirs(dir)
 		fh = open(dir + '/' + self.timestamp.strftime('%M-%S-') + str(self.id) + '.mediawiki', 'w')
+		fh.write("%s\n" % title.encode('UTF-8'))
 		fh.write(self.dom.toxml().encode('UTF-8'))
 		fh.close()
 
