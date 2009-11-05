@@ -6,6 +6,7 @@ import codecs
 import datetime
 import os
 import sys
+import bz2
 
 READ_SIZE = 10240000
 
@@ -39,7 +40,7 @@ class Revision:
 		dir = self.timestamp.strftime('%Y/%m/%d/%H')
 		if not os.path.isdir(dir):
 			os.makedirs(dir)
-		fh = open(dir + '/' + self.timestamp.strftime('%M-%S-') + str(self.id) + '.mediawiki', 'w')
+		fh = bz2.BZ2File(dir + '/' + self.timestamp.strftime('%M-%S-') + str(self.id) + '.mediawiki', 'w')
 		fh.write("%s\n" % title.encode('UTF-8'))
 		fh.write(self.dom.toxml().encode('UTF-8'))
 		fh.close()
