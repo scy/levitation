@@ -178,7 +178,8 @@ class Page:
 class BlobWriter:
 	def __init__(self, meta):
 		self.text = self.xml = None
-		self.intag = self.cancel = False
+		self.intag = None
+		self.cancel = False
 		self.startbyte = self.readbytes = self.imported = 0
 		self.meta = meta
 		self.fh = codecs.getreader(ENCODING)(sys.stdin)
@@ -198,25 +199,28 @@ class BlobWriter:
 			self.readbytes += len(self.text)
 		self.expat.Parse('', True)
 	def find_start(self, name, attrs):
-		if name == 'page':
-			self.intag = True
+		if name in ('page', 'base', 'namespace'):
+			self.intag = name
 			self.expat.StartElementHandler = None
 			self.expat.EndElementHandler = self.find_end
 			self.startbyte = self.expat.CurrentByteIndex - self.readbytes
 			self.xml = ''
 	def find_end(self, name):
-		if name == 'page':
-			if not self.intag:
-				raise Exception('not in tag!')
-			self.intag = False
+		if name == self.intag:
+			self.intag = None
 			self.expat.StartElementHandler = self.find_start
 			self.expat.EndElementHandler = None
 			self.xml += self.text[self.startbyte:self.expat.CurrentByteIndex-self.readbytes] + '</' + name.encode(ENCODING) + '>'
-			Page(self.xml, meta).dump()
-			self.imported += 1
-			if IMPORT_MAX > 0 and self.imported >= IMPORT_MAX:
-				self.expat.StartElementHandler = None
-				self.cancel = True
+			if name == 'page':
+				Page(self.xml, meta).dump()
+				self.imported += 1
+				if IMPORT_MAX > 0 and self.imported >= IMPORT_MAX:
+					self.expat.StartElementHandler = None
+					self.cancel = True
+			elif name == 'base':
+				pass
+			elif name == 'namespace':
+				pass
 
 class Committer:
 	def __init__(self, meta):
