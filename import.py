@@ -93,9 +93,9 @@ class User:
 				self.id = int(singletext(lv1))
 			elif lv1.tagName == 'ip':
 				# FIXME: This is so not-v6-compatible it hurts.
+				self.isip = True
 				try:
 					self.id = struct.unpack('!I', socket.inet_aton(singletext(lv1)))[0]
-					self.isip = True
 				except socket.error:
 					# IP could not be parsed. Leave ID as -1 then.
 					pass
