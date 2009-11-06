@@ -47,7 +47,7 @@ class Revision:
 			elif lv1.tagName == 'text':
 				self.text = singletext(lv1)
 	def dump(self, title):
-		mydata = self.dom.toxml().encode(ENCODING)
+		mydata = self.text.encode(ENCODING)
 		out('blob\nmark :%d\ndata %d\n' % (self.id, len(mydata)))
 		out(mydata + '\n')
 
