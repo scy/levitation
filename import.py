@@ -155,12 +155,12 @@ class Revision:
 		out(mydata + '\n')
 
 class Page:
-	def __init__(self, xmlstring, meta):
+	def __init__(self, dom, meta):
 		self.revisions = []
 		self.id = -1
 		self.title = ''
 		self.meta = meta
-		self.dom = xml.dom.minidom.parseString(xmlstring)
+		self.dom = dom
 		for lv1 in self.dom.documentElement.childNodes:
 			if lv1.nodeType != lv1.ELEMENT_NODE:
 				continue
@@ -210,9 +210,13 @@ class BlobWriter:
 			self.intag = None
 			self.expat.StartElementHandler = self.find_start
 			self.expat.EndElementHandler = None
-			self.xml += self.text[self.startbyte:self.expat.CurrentByteIndex-self.readbytes] + '</' + name.encode(ENCODING) + '>'
+			endbyte = self.expat.CurrentByteIndex - self.readbytes
+			self.xml += self.text[self.startbyte:endbyte] + '</' + name.encode(ENCODING) + '>'
+			if self.startbyte == endbyte:
+				self.xml = '<' + name.encode(ENCODING) + ' />'
+			dom = xml.dom.minidom.parseString(self.xml)
 			if name == 'page':
-				Page(self.xml, meta).dump()
+				Page(dom, meta).dump()
 				self.imported += 1
 				if IMPORT_MAX > 0 and self.imported >= IMPORT_MAX:
 					self.expat.StartElementHandler = None
