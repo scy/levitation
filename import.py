@@ -1,5 +1,11 @@
 #!/usr/bin/env python
 
+
+# Hi, and welcome to the code.
+# This is currently PoC quality, and I'm no Python God either.
+# Patches are encouraged, fork me on GitHub.
+
+
 import xml.dom.minidom
 from xml.parsers.expat import ParserCreate
 from calendar import timegm
