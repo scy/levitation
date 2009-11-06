@@ -1,6 +1,10 @@
-This is a collection of tools to convert Wikipedia database dumps into Git
-repositories. Since I’m bloody creative, they are named „Gitipedia“. Currently,
-development is focused on testing wheter it can be done at all.
+This is Levitation, a project to convert Wikipedia database dumps into Git
+repositories. It has been successfully tested with a small Wiki
+(pdc.wikipedia.org) having 3,700 articles and 40,000 revisions. Importing
+those took 10 minutes on a Core 2 Duo 1.66 GHz. RAM usage is minimal: Pages are
+imported one after the other, it will at most require the amount of memory
+needed to keep all revisions of a single page into memory. You should be safe
+with 1 GB of RAM.
 
 
 How it should be done:
@@ -9,8 +13,9 @@ You can get recent dumps of all Wikimedia wikis at:
 http://download.wikimedia.org/backup-index.html
 
 The pages-meta-history.xml file is what we want. (In case you’re wondering:
-Wikimedia does not offer content SQL dumps anymore.) It includes all pages in
-all namespaces and all of their revisions. The problem is the data’s order.
+Wikimedia does not offer content SQL dumps anymore, and there are now full-
+history dump for en.wikipedia.org because of its size.) It includes all pages
+in all namespaces and all of their revisions. The problem is the data’s order.
 
 In the dump files, the first <page> tag contains the first page that has been
 created and all of its revisions. The second <page> tag contains the second
@@ -32,11 +37,9 @@ that’s fine. If, however, a second page was created, the next commit needs to
 add that page’s content, without first doing something with the other revisions
 of the first page.
 
-Therefore you need to reorder the data in the dump. Reordering up to 1 TB of
+Therefore you need to reorder the data in the dump. Reordering several TB of
 data isn’t the most trivial thing to do. A careful balance between performance,
-disk and memory usage must be found. The plan is as follows. (Note that the
-current code does not comply to the plan. This is because the plan got more
-sophisticated and the code did not follow yet.)
+disk and memory usage must be found. The plan is as follows.
 
 In order to minimize the amount of disk space required, the import.py tool
 reads the XML stream from stdin, allowing you to pipe a file that is
@@ -69,38 +72,66 @@ The real content files will need to be put into different directories because
 of limitations in the maximum number of files per directory.
 
 
-Sorry if all of this seems a bit confused, it was written in a hurry.
-
 Now to the actual implementation:
 
 
 Things that work:
 
- - Read a Wikipedia XML full-history dump and store each revision in a bz2
-   compressed file, ordered by date.
+ - Read a Wikipedia XML full-history dump and output it in a format suitable
+   for piping into git-fast-import(1). The resulting repository contains one
+   file per page. All revisions are available in the history. There are some
+   restrictions, read below.
 
 
-Things to come:
+Things that are still missing:
 
- - Think of a neat file hierarchy for the Git working copy: You cannot throw
-   3 million articles into a single directory. Instead, you need additional
-   subdirectory levels. I’ll probably go for the first n bytes of the hashed
-   article name.
+ - Use the original modification summary as commit message. Currently we use
+   the rather boring "Revision X". However, these summaries need to be
+   temporarily stored in an external file because we cannot keep them in RAM
+   for larger Wikis. Store additional information in the commit message that
+   specifies page and revision ID.
 
- - Create a Git repository and use git-fast-import to throw all those revisions
-   into the repository.
+ - Use the page’s name as file name instead of the page ID. To do that, we need
+   a meta file that stores the page names. Page name _should_ be limited to 255
+   _bytes_ UTF-8, however MediaWiki is not quite clear about whether that
+   should actually be _characters_. Additionally, the page name does not
+   include the namespace name, even if though in the dump it’s prefixed with
+   the namespace. The meta file needs to store the namespace ID as well. Since
+   there usually are only a few namespaces (10 or 20), we can keep their names
+   in RAM.
+
+ - Use the author name in the commit instead of the user ID. To do that, we
+   need a meta file that stores the author names. Author name _should_ be
+   limited to 255 _bytes_ UTF-8, however MediaWiki is not quite clear about
+   whether that should actually be _characters_.
+
+ - Think of a neat file hierarchy for the file tree: You cannot throw 3 million
+   articles into a single directory. Instead, you need additional subdirectory
+   levels. I’ll probably go for the first n bytes of the hashed article name.
+
+ - Use a locally timezoned timestamp for the commit date instead of an UTC one.
+
+ - Allow IPv6 addresses as IP edit usernames. (Although afaics MediaWiki itself
+   cannot handle IPv6 addresses, so we got some time.)
 
 
-Things to probably rework:
+Things that are strange:
 
- - Currently, each revision is read from the XML dump and stored in a bz2
-   compressed file, to allow us to read the revisions ordered by date, but
-   without keeping them in memory. Then, in the planned step 2, those files
-   would be fed to Git. Instead, we could directly create blobs via
-   git-fast-import and just remember their revision numbers and dates, sort
-   them and create commits accordingly. This would require some more memory (to
-   remember all the dates and IDs and to sort them) but lower disk usage and IO
-   quite a lot.
+ - The resulting Git repo is larger than the _uncompressed_ XML file. Delta
+   compression is working fine. I suspect the problem is large trees because
+   of the still missing subdirectories.
+
+
+Things that are cool:
+
+ - “git checkout master~30000” takes you back 30,000 edits in time — and on my
+   test machine it only took about a second.
+
+ - The XML data might be in the wrong order to directly create commits from it,
+   but it is in the right order for blob delta compression: When passing blobs
+   to git-fast-import, delta compression will be tried based on the previous
+   blob — which is the same page, one revision before. Therefore, delta
+   compression will succeed and save you tons of storage.
 
 
 Example usage:
@@ -111,3 +142,18 @@ This will import the pdc.wikipedia.org dump into a new Git repository “repo”
     ./import.py < ~/pdcwiki-20091103-pages-meta-history.xml | \
     GIT_DIR=repo git fast-import | \
     sed 's/^progress //'
+
+
+Contacting the author:
+
+This monster is written by Tim “Scytale” Weber. It is an experiment, whether the
+current “relevance war” in the German Wikipedia can be ended by decentralizing
+content.
+
+Find ways to contact me on http://scytale.name/contact/, talk to me on Twitter
+(@Scytale) or on IRC (freenode, #oqlt).
+
+Get the most up-to-date code at http://github.com/scy/levitation.
+
+
+This whole bunch of tasty bytes is licensed under the terms of the WTFPLv2.
