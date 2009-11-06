@@ -51,11 +51,11 @@ class Meta:
 		self.fh.write(data)
 
 class Revision:
-	def __init__(self, node, writers):
+	def __init__(self, node, meta):
 		self.id = -1
 		self.minor = False
 		self.timestamp = self.text = None
-		self.writers = writers
+		self.meta = meta
 		self.dom = node
 		for lv1 in self.dom.childNodes:
 			if lv1.nodeType != lv1.ELEMENT_NODE:
@@ -69,17 +69,17 @@ class Revision:
 			elif lv1.tagName == 'text':
 				self.text = singletext(lv1)
 	def dump(self, title):
-		self.writers['meta'].write(self.id, self.timestamp, 0, 0, self.minor)
+		self.meta['meta'].write(self.id, self.timestamp, 0, 0, self.minor)
 		mydata = self.text.encode(ENCODING)
 		out('blob\nmark :%d\ndata %d\n' % (self.id, len(mydata)))
 		out(mydata + '\n')
 
 class Page:
-	def __init__(self, xmlstring, writers):
+	def __init__(self, xmlstring, meta):
 		self.revisions = []
 		self.id = -1
 		self.title = ''
-		self.writers = writers
+		self.meta = meta
 		self.dom = xml.dom.minidom.parseString(xmlstring)
 		for lv1 in self.dom.documentElement.childNodes:
 			if lv1.nodeType != lv1.ELEMENT_NODE:
@@ -89,7 +89,7 @@ class Page:
 			elif lv1.tagName == 'id':
 				self.id = int(singletext(lv1))
 			elif lv1.tagName == 'revision':
-				self.revisions.append(Revision(lv1, self.writers))
+				self.revisions.append(Revision(lv1, self.meta))
 	def dump(self):
 		progress('   ' + self.title.encode(ENCODING))
 		for revision in self.revisions:
