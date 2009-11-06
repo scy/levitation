@@ -2,9 +2,11 @@
 
 import xml.dom.minidom
 from xml.parsers.expat import ParserCreate
+from calendar import timegm
 import codecs
 import datetime
 import os
+import struct
 import sys
 import bz2
 
@@ -12,6 +14,7 @@ import bz2
 READ_SIZE = 10240000
 ENCODING = 'UTF-8'
 IMPORT_MAX = 10
+METAFILE = '.import-meta'
 
 def singletext(node):
 	if len(node.childNodes) == 0:
@@ -29,11 +32,30 @@ def progress(text):
 	out('progress ' + text + '\n')
 	sys.stdout.flush()
 
+class Meta:
+	def __init__(self, file):
+		self.struct = struct.Struct('llllB')
+		self.fh = open(file, 'wb+')
+	def write(self, rev, time, page, author, minor):
+		flags = 0
+		if minor:
+			flags += 1
+		data = self.struct.pack(
+			rev,
+			timegm(time.utctimetuple()),
+			page,
+			author,
+			flags
+			)
+		self.fh.seek(rev * self.struct.size)
+		self.fh.write(data)
+
 class Revision:
-	def __init__(self, node):
+	def __init__(self, node, writers):
 		self.id = -1
 		self.minor = False
 		self.timestamp = self.text = None
+		self.writers = writers
 		self.dom = node
 		for lv1 in self.dom.childNodes:
 			if lv1.nodeType != lv1.ELEMENT_NODE:
@@ -47,15 +69,17 @@ class Revision:
 			elif lv1.tagName == 'text':
 				self.text = singletext(lv1)
 	def dump(self, title):
+		self.writers['meta'].write(self.id, self.timestamp, 0, 0, self.minor)
 		mydata = self.text.encode(ENCODING)
 		out('blob\nmark :%d\ndata %d\n' % (self.id, len(mydata)))
 		out(mydata + '\n')
 
 class Page:
-	def __init__(self, xmlstring):
+	def __init__(self, xmlstring, writers):
 		self.revisions = []
 		self.id = -1
 		self.title = ''
+		self.writers = writers
 		self.dom = xml.dom.minidom.parseString(xmlstring)
 		for lv1 in self.dom.documentElement.childNodes:
 			if lv1.nodeType != lv1.ELEMENT_NODE:
@@ -65,7 +89,7 @@ class Page:
 			elif lv1.tagName == 'id':
 				self.id = int(singletext(lv1))
 			elif lv1.tagName == 'revision':
-				self.revisions.append(Revision(lv1))
+				self.revisions.append(Revision(lv1, self.writers))
 	def dump(self):
 		progress('   ' + self.title.encode(ENCODING))
 		for revision in self.revisions:
@@ -76,6 +100,7 @@ class XMLChunker:
 		self.text = self.xml = None
 		self.inpage = False
 		self.startbyte = self.readbytes = self.imported = 0
+		self.meta = Meta(METAFILE) # FIXME: Use a parameter.
 		self.fh = codecs.getreader(ENCODING)(sys.stdin)
 		self.expat = ParserCreate(ENCODING)
 		self.expat.StartElementHandler = self.find_page
@@ -105,7 +130,7 @@ class XMLChunker:
 			self.expat.StartElementHandler = self.find_page
 			self.expat.EndElementHandler = None
 			self.xml += self.text[self.startbyte:self.expat.CurrentByteIndex-self.readbytes] + '</' + name.encode(ENCODING) + '>'
-			Page(self.xml).dump()
+			Page(self.xml, {'meta': self.meta}).dump()
 			self.imported += 1
 			if IMPORT_MAX > 0 and self.imported >= IMPORT_MAX:
 				sys.exit(0)
