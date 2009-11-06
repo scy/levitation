@@ -55,6 +55,24 @@ class Meta:
 		self.fh.write(data)
 		if self.maxrev < rev:
 			self.maxrev = rev
+	def read(self, rev):
+		self.fh.seek(rev * self.struct.size)
+		data = self.fh.read(self.struct.size)
+		tuple = self.struct.unpack(data)
+		d = {
+			'rev':    tuple[0],
+			'epoch':  tuple[1],
+			'time':   datetime.datetime.utcfromtimestamp(tuple[1]),
+			'page':   tuple[2],
+			'user':   tuple[3]
+			}
+		if d['rev'] != 0:
+			d['exists'] = True
+		else:
+			d['exists'] = False
+		d['day'] = d['time'].strftime('%Y-%m-%d')
+		# FIXME: minor
+		return d
 
 class User:
 	def __init__(self, node):
