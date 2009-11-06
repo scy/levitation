@@ -56,7 +56,7 @@ class Page:
 		self.revisions = []
 		self.id = -1
 		self.title = ''
-		self.dom = xml.dom.minidom.parseString(xmlstring.encode(ENCODING))
+		self.dom = xml.dom.minidom.parseString(xmlstring)
 		for lv1 in self.dom.documentElement.childNodes:
 			if lv1.nodeType != lv1.ELEMENT_NODE:
 				continue
@@ -81,15 +81,14 @@ class XMLChunker:
 		self.expat.StartElementHandler = self.find_page
 	def parse(self):
 		while True:
-			self.text = self.fh.read(READ_SIZE)
-			encoded = self.text.encode(ENCODING)
+			self.text = self.fh.read(READ_SIZE).encode(ENCODING)
 			if not self.text:
 				break
 			self.startbyte = 0
-			self.expat.Parse(encoded)
+			self.expat.Parse(self.text)
 			if self.inpage:
-				self.xml += self.text.encode(ENCODING)[self.startbyte:].decode(ENCODING)
-			self.readbytes += len(encoded)
+				self.xml += self.text[self.startbyte:]
+			self.readbytes += len(self.text)
 		self.expat.Parse('', True)
 	def find_page(self, name, attrs):
 		if name == 'page':
@@ -97,7 +96,7 @@ class XMLChunker:
 			self.expat.StartElementHandler = None
 			self.expat.EndElementHandler = self.find_pageend
 			self.startbyte = self.expat.CurrentByteIndex - self.readbytes
-			self.xml = u''
+			self.xml = ''
 	def find_pageend(self, name):
 		if name == 'page':
 			if not self.inpage:
@@ -105,7 +104,7 @@ class XMLChunker:
 			self.inpage = False
 			self.expat.StartElementHandler = self.find_page
 			self.expat.EndElementHandler = None
-			self.xml += self.text.encode(ENCODING)[self.startbyte:self.expat.CurrentByteIndex-self.readbytes].decode(ENCODING) + '</' + name + '>'
+			self.xml += self.text[self.startbyte:self.expat.CurrentByteIndex-self.readbytes] + '</' + name.encode(ENCODING) + '>'
 			Page(self.xml).dump()
 
 print "Step 1: Chunking by date."
