@@ -6,6 +6,7 @@ from calendar import timegm
 import codecs
 import datetime
 import os
+from socket import inet_aton, inet_ntoa
 import struct
 import sys
 import bz2
@@ -34,12 +35,14 @@ def progress(text):
 
 class Meta:
 	def __init__(self, file):
-		self.struct = struct.Struct('llllB')
+		self.struct = struct.Struct('LLLLB')
 		self.fh = open(file, 'wb+')
 	def write(self, rev, time, page, author, minor):
 		flags = 0
 		if minor:
 			flags += 1
+		if author.isip:
+			flags += 2
 		data = self.struct.pack(
 			rev,
 			timegm(time.utctimetuple()),
@@ -54,6 +57,7 @@ class User:
 	def __init__(self, node):
 		self.id = -1
 		self.name = None
+		self.isip = False
 		for lv1 in node.childNodes:
 			if lv1.nodeType != lv1.ELEMENT_NODE:
 				continue
@@ -61,6 +65,10 @@ class User:
 				self.name = singletext(lv1)
 			elif lv1.tagName == 'id':
 				self.id = int(singletext(lv1))
+			elif lv1.tagName == 'ip':
+				# FIXME: This is so not-v6-compatible it hurts.
+				self.id = struct.unpack('!I', inet_aton(singletext(lv1)))[0]
+				self.isip = True
 
 class Revision:
 	def __init__(self, node, page, meta):
