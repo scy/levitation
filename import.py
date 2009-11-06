@@ -97,7 +97,7 @@ class Revision:
 	def dump(self, title):
 		self.meta['meta'].write(self.id, self.timestamp, self.page, self.user, self.minor)
 		mydata = self.text.encode(ENCODING)
-		out('blob\nmark :%d\ndata %d\n' % (self.id, len(mydata)))
+		out('blob\nmark :%d\ndata %d\n' % (self.id + 1, len(mydata)))
 		out(mydata + '\n')
 
 class Page:
