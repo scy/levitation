@@ -12,6 +12,7 @@ READ_SIZE = 10240000
 DUMP_PATTERN = '%Y-%m-%d-%H-%M-%S-'
 DUMP_REVPATTERN = '%010d'
 DUMP_LEVELS = 4
+ENCODING = 'UTF-8'
 
 def singletext(node):
 	if len(node.childNodes) == 0:
@@ -46,8 +47,8 @@ class Revision:
 		if not os.path.isdir(dir):
 			os.makedirs(dir)
 		fh = bz2.BZ2File(os.path.join(dir, filename), 'w')
-		fh.write("%s\n" % title.encode('UTF-8'))
-		fh.write(self.dom.toxml().encode('UTF-8'))
+		fh.write("%s\n" % title.encode(ENCODING))
+		fh.write(self.dom.toxml().encode(ENCODING))
 		fh.close()
 
 class Page:
@@ -55,7 +56,7 @@ class Page:
 		self.revisions = []
 		self.id = -1
 		self.title = ''
-		self.dom = xml.dom.minidom.parseString(xmlstring.encode('UTF-8'))
+		self.dom = xml.dom.minidom.parseString(xmlstring.encode(ENCODING))
 		for lv1 in self.dom.documentElement.childNodes:
 			if lv1.nodeType != lv1.ELEMENT_NODE:
 				continue
@@ -66,7 +67,7 @@ class Page:
 			elif lv1.tagName == 'revision':
 				self.revisions.append(Revision(lv1))
 	def dump(self):
-		print '   ' + self.title.encode('UTF-8')
+		print '   ' + self.title.encode(ENCODING)
 		for revision in self.revisions:
 			revision.dump(self.title)
 
@@ -75,19 +76,19 @@ class XMLChunker:
 		self.text = self.xml = None
 		self.inpage = False
 		self.startbyte = self.readbytes = 0
-		self.fh = codecs.open(filename, 'r', 'UTF-8')
-		self.expat = ParserCreate('UTF-8')
+		self.fh = codecs.open(filename, 'r', ENCODING)
+		self.expat = ParserCreate(ENCODING)
 		self.expat.StartElementHandler = self.find_page
 	def parse(self):
 		while True:
 			self.text = self.fh.read(READ_SIZE)
-			encoded = self.text.encode('UTF-8')
+			encoded = self.text.encode(ENCODING)
 			if not self.text:
 				break
 			self.startbyte = 0
 			self.expat.Parse(encoded)
 			if self.inpage:
-				self.xml += self.text.encode('UTF-8')[self.startbyte:].decode('UTF-8')
+				self.xml += self.text.encode(ENCODING)[self.startbyte:].decode(ENCODING)
 			self.readbytes += len(encoded)
 		self.expat.Parse('', True)
 	def find_page(self, name, attrs):
@@ -104,7 +105,7 @@ class XMLChunker:
 			self.inpage = False
 			self.expat.StartElementHandler = self.find_page
 			self.expat.EndElementHandler = None
-			self.xml += self.text.encode('UTF-8')[self.startbyte:self.expat.CurrentByteIndex-self.readbytes].decode('UTF-8') + '</' + name + '>'
+			self.xml += self.text.encode(ENCODING)[self.startbyte:self.expat.CurrentByteIndex-self.readbytes].decode(ENCODING) + '</' + name + '>'
 			Page(self.xml).dump()
 
 print "Step 1: Chunking by date."
