@@ -44,17 +44,29 @@ class Meta:
 			rev,
 			timegm(time.utctimetuple()),
 			page,
-			author,
+			author.id,
 			flags
 			)
 		self.fh.seek(rev * self.struct.size)
 		self.fh.write(data)
 
+class User:
+	def __init__(self, node):
+		self.id = -1
+		self.name = None
+		for lv1 in node.childNodes:
+			if lv1.nodeType != lv1.ELEMENT_NODE:
+				continue
+			if lv1.tagName == 'username':
+				self.name = singletext(lv1)
+			elif lv1.tagName == 'id':
+				self.id = int(singletext(lv1))
+
 class Revision:
 	def __init__(self, node, page, meta):
 		self.id = -1
 		self.minor = False
-		self.timestamp = self.text = None
+		self.timestamp = self.text = self.user = None
 		self.page = page
 		self.meta = meta
 		self.dom = node
@@ -65,12 +77,14 @@ class Revision:
 				self.id = int(singletext(lv1))
 			elif lv1.tagName == 'timestamp':
 				self.timestamp = datetime.datetime.strptime(singletext(lv1), "%Y-%m-%dT%H:%M:%SZ")
+			elif lv1.tagName == 'contributor':
+				self.user = User(lv1)
 			elif lv1.tagName == 'minor':
 				self.minor = True
 			elif lv1.tagName == 'text':
 				self.text = singletext(lv1)
 	def dump(self, title):
-		self.meta['meta'].write(self.id, self.timestamp, self.page, 0, self.minor)
+		self.meta['meta'].write(self.id, self.timestamp, self.page, self.user, self.minor)
 		mydata = self.text.encode(ENCODING)
 		out('blob\nmark :%d\ndata %d\n' % (self.id, len(mydata)))
 		out(mydata + '\n')
