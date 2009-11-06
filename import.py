@@ -10,7 +10,7 @@ import socket
 import struct
 import sys
 import time
-import bz2
+import urlparse
 
 # How many bytes to read at once. You probably can leave this alone.
 # FIXME: With smaller READ_SIZE this tends to crash on the final read?
@@ -45,6 +45,7 @@ class Meta:
 		self.struct = struct.Struct('LLLLB')
 		self.maxrev = -1
 		self.fh = open(file, 'wb+')
+		self.domain = 'unknown.invalid'
 	def write(self, rev, time, page, author, minor):
 		flags = 0
 		if minor:
@@ -223,7 +224,7 @@ class BlobWriter:
 					self.expat.StartElementHandler = None
 					self.cancel = True
 			elif name == 'base':
-				pass
+				self.meta['meta'].domain = urlparse.urlparse(singletext(dom.documentElement)).hostname.encode(ENCODING)
 			elif name == 'namespace':
 				pass
 
@@ -250,7 +251,7 @@ class Committer:
 			out(
 				'commit refs/heads/master\n' +
 				'mark :%d\n' % commit +
-				'author User ID %d <uid-%d@FIXME> %d +0000\n' % (meta['user'], meta['user'], meta['epoch']) +
+				'author User ID %d <uid-%d@git.%s> %d +0000\n' % (meta['user'], meta['user'], self.meta['meta'].domain, meta['epoch']) +
 				'committer Importer <importer@FIXME> %d +0000\n' % time.time() +
 				'data %d\n%s\n' % (len(msg), msg) +
 				fromline +

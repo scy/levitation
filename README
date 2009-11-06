@@ -88,6 +88,8 @@ Things that work:
 
  - Use the original modification summary as commit message.
 
+ - Read the Wiki URL from the XML file and set user mail addresses accordingly.
+
 
 Things that are still missing:
 
@@ -111,8 +113,6 @@ Things that are still missing:
  - Think of a neat file hierarchy for the file tree: You cannot throw 3 million
    articles into a single directory. Instead, you need additional subdirectory
    levels. I’ll probably go for the first n bytes of the hashed article name.
-
- - Read the Wiki URL from the XML file and set user mail addresses accordingly.
 
  - Use a locally timezoned timestamp for the commit date instead of an UTC one.
 
