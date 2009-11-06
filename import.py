@@ -72,11 +72,11 @@ class Page:
 			revision.dump(self.title)
 
 class XMLChunker:
-	def __init__(self, filename):
+	def __init__(self):
 		self.text = self.xml = None
 		self.inpage = False
 		self.startbyte = self.readbytes = 0
-		self.fh = codecs.open(filename, 'r', ENCODING)
+		self.fh = codecs.getreader(ENCODING)(sys.stdin)
 		self.expat = ParserCreate(ENCODING)
 		self.expat.StartElementHandler = self.find_page
 	def parse(self):
@@ -108,5 +108,5 @@ class XMLChunker:
 			Page(self.xml).dump()
 
 print "Step 1: Chunking by date."
-xc = XMLChunker(sys.argv[1])
+xc = XMLChunker()
 xc.parse()
