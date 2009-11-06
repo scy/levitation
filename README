@@ -6,6 +6,10 @@ imported one after the other, it will at most require the amount of memory
 needed to keep all revisions of a single page into memory. You should be safe
 with 1 GB of RAM.
 
+See below (“Things that work”) for the current status.
+
+Some knowledge of Git is required to use this tool.
+
 
 How it should be done:
 
