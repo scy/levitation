@@ -36,6 +36,7 @@ def progress(text):
 class Meta:
 	def __init__(self, file):
 		self.struct = struct.Struct('LLLLB')
+		self.maxrev = -1
 		self.fh = open(file, 'wb+')
 	def write(self, rev, time, page, author, minor):
 		flags = 0
@@ -52,6 +53,8 @@ class Meta:
 			)
 		self.fh.seek(rev * self.struct.size)
 		self.fh.write(data)
+		if self.maxrev < rev:
+			self.maxrev = rev
 
 class User:
 	def __init__(self, node):
