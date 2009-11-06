@@ -124,7 +124,7 @@ class Page:
 class BlobWriter:
 	def __init__(self, meta):
 		self.text = self.xml = None
-		self.inpage = False
+		self.inpage = self.cancel = False
 		self.startbyte = self.readbytes = self.imported = 0
 		self.meta = meta
 		self.fh = codecs.getreader(ENCODING)(sys.stdin)
@@ -137,6 +137,8 @@ class BlobWriter:
 				break
 			self.startbyte = 0
 			self.expat.Parse(self.text)
+			if self.cancel:
+				return
 			if self.inpage:
 				self.xml += self.text[self.startbyte:]
 			self.readbytes += len(self.text)
@@ -159,9 +161,10 @@ class BlobWriter:
 			Page(self.xml, meta).dump()
 			self.imported += 1
 			if IMPORT_MAX > 0 and self.imported >= IMPORT_MAX:
-				sys.exit(0)
+				self.expat.StartElementHandler = None
+				self.cancel = True
+
+meta = {'meta': Meta(METAFILE)} # FIXME: Use a parameter.
 
 progress('Step 1: Creating blobs.')
-meta = {'meta': Meta(METAFILE)} # FIXME: Use a parameter.
-xc = BlobWriter(meta)
-xc.parse()
+BlobWriter(meta).parse()
