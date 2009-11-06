@@ -121,12 +121,12 @@ class Page:
 		for revision in self.revisions:
 			revision.dump(self.title)
 
-class XMLChunker:
-	def __init__(self):
+class BlobWriter:
+	def __init__(self, meta):
 		self.text = self.xml = None
 		self.inpage = False
 		self.startbyte = self.readbytes = self.imported = 0
-		self.meta = Meta(METAFILE) # FIXME: Use a parameter.
+		self.meta = meta
 		self.fh = codecs.getreader(ENCODING)(sys.stdin)
 		self.expat = ParserCreate(ENCODING)
 		self.expat.StartElementHandler = self.find_page
@@ -156,11 +156,12 @@ class XMLChunker:
 			self.expat.StartElementHandler = self.find_page
 			self.expat.EndElementHandler = None
 			self.xml += self.text[self.startbyte:self.expat.CurrentByteIndex-self.readbytes] + '</' + name.encode(ENCODING) + '>'
-			Page(self.xml, {'meta': self.meta}).dump()
+			Page(self.xml, meta).dump()
 			self.imported += 1
 			if IMPORT_MAX > 0 and self.imported >= IMPORT_MAX:
 				sys.exit(0)
 
 progress('Step 1: Creating blobs.')
-xc = XMLChunker()
+meta = {'meta': Meta(METAFILE)} # FIXME: Use a parameter.
+xc = BlobWriter(meta)
 xc.parse()
