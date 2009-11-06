@@ -109,6 +109,8 @@ Things that are still missing:
    articles into a single directory. Instead, you need additional subdirectory
    levels. I’ll probably go for the first n bytes of the hashed article name.
 
+ - Read the Wiki URL from the XML file and set user mail addresses accordingly.
+
  - Use a locally timezoned timestamp for the commit date instead of an UTC one.
 
  - Allow IPv6 addresses as IP edit usernames. (Although afaics MediaWiki itself
