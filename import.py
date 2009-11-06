@@ -9,12 +9,13 @@ import os
 from socket import inet_aton, inet_ntoa
 import struct
 import sys
+import time
 import bz2
 
 # FIXME: With smaller READ_SIZE this tends to crash on the final read?
 READ_SIZE = 10240000
 ENCODING = 'UTF-8'
-IMPORT_MAX = 10
+IMPORT_MAX = 100
 METAFILE = '.import-meta'
 
 def singletext(node):
@@ -182,7 +183,40 @@ class BlobWriter:
 				self.expat.StartElementHandler = None
 				self.cancel = True
 
+class Committer:
+	def __init__(self, meta):
+		self.meta = meta
+	def work(self):
+		rev = commit = 1
+		day = ''
+		while rev <= self.meta['meta'].maxrev:
+			meta = self.meta['meta'].read(rev)
+			rev += 1
+			if not meta['exists']:
+				continue
+			msg = 'Revision %d' % meta['rev']
+			if commit == 1:
+				fromline = ''
+			else:
+				fromline = 'from :%d\n' % (commit - 1)
+			if day != meta['day']:
+				day = meta['day']
+				progress('   ' + day)
+			out(
+				'commit refs/heads/master\n' +
+				'mark :%d\n' % commit +
+				'author User ID %d <uid-%d@FIXME> %d +0000\n' % (meta['user'], meta['user'], meta['epoch']) +
+				'committer Importer <importer@FIXME> %d +0000\n' % time.time() +
+				'data %d\n%s\n' % (len(msg), msg) +
+				fromline +
+				'M 100644 :%d %d.mediawiki\n' % (meta['rev'] + 1, meta['page'])
+				)
+			commit += 1
+
 meta = {'meta': Meta(METAFILE)} # FIXME: Use a parameter.
 
 progress('Step 1: Creating blobs.')
 BlobWriter(meta).parse()
+
+progress('Step 2: Writing commits.')
+Committer(meta).work()
