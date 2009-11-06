@@ -23,8 +23,11 @@ def singletext(node):
 		raise Exception('singletext child is not text')
 	return node.childNodes[0].data
 
+def out(text):
+	sys.stdout.write(text)
+
 def progress(text):
-	sys.stdout.write('progress ' + text + '\n')
+	out('progress ' + text + '\n')
 	sys.stdout.flush()
 
 class Revision:
