@@ -178,12 +178,12 @@ class Page:
 class BlobWriter:
 	def __init__(self, meta):
 		self.text = self.xml = None
-		self.inpage = self.cancel = False
+		self.intag = self.cancel = False
 		self.startbyte = self.readbytes = self.imported = 0
 		self.meta = meta
 		self.fh = codecs.getreader(ENCODING)(sys.stdin)
 		self.expat = ParserCreate(ENCODING)
-		self.expat.StartElementHandler = self.find_page
+		self.expat.StartElementHandler = self.find_start
 	def parse(self):
 		while True:
 			self.text = self.fh.read(READ_SIZE).encode(ENCODING)
@@ -193,23 +193,23 @@ class BlobWriter:
 			self.expat.Parse(self.text)
 			if self.cancel:
 				return
-			if self.inpage:
+			if self.intag:
 				self.xml += self.text[self.startbyte:]
 			self.readbytes += len(self.text)
 		self.expat.Parse('', True)
-	def find_page(self, name, attrs):
+	def find_start(self, name, attrs):
 		if name == 'page':
-			self.inpage = True
+			self.intag = True
 			self.expat.StartElementHandler = None
-			self.expat.EndElementHandler = self.find_pageend
+			self.expat.EndElementHandler = self.find_end
 			self.startbyte = self.expat.CurrentByteIndex - self.readbytes
 			self.xml = ''
-	def find_pageend(self, name):
+	def find_end(self, name):
 		if name == 'page':
-			if not self.inpage:
-				raise Exception('not in page!')
-			self.inpage = False
-			self.expat.StartElementHandler = self.find_page
+			if not self.intag:
+				raise Exception('not in tag!')
+			self.intag = False
+			self.expat.StartElementHandler = self.find_start
 			self.expat.EndElementHandler = None
 			self.xml += self.text[self.startbyte:self.expat.CurrentByteIndex-self.readbytes] + '</' + name.encode(ENCODING) + '>'
 			Page(self.xml, meta).dump()
