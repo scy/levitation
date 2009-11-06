@@ -9,9 +9,6 @@ import sys
 import bz2
 
 READ_SIZE = 10240000
-DUMP_PATTERN = '%Y-%m-%d-%H-%M-%S-'
-DUMP_REVPATTERN = '%010d'
-DUMP_LEVELS = 4
 ENCODING = 'UTF-8'
 
 def singletext(node):
@@ -48,15 +45,9 @@ class Revision:
 			elif lv1.tagName == 'text':
 				self.text = singletext(lv1)
 	def dump(self, title):
-		components = self.timestamp.strftime(DUMP_PATTERN).split('-', DUMP_LEVELS)
-		filename = components.pop() + (DUMP_REVPATTERN % self.id) + '.mediawiki'
-		dir = os.sep.join(components)
-		if not os.path.isdir(dir):
-			os.makedirs(dir)
-		fh = bz2.BZ2File(os.path.join(dir, filename), 'w')
-		fh.write("%s\n" % title.encode(ENCODING))
-		fh.write(self.dom.toxml().encode(ENCODING))
-		fh.close()
+		mydata = self.dom.toxml().encode(ENCODING)
+		out('blob\nmark :%d\ndata %d\n' % (self.id, len(mydata)))
+		out(mydata + '\n')
 
 class Page:
 	def __init__(self, xmlstring):
