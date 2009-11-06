@@ -78,14 +78,21 @@ class Meta:
 			'epoch':  tuple[1],
 			'time':   datetime.datetime.utcfromtimestamp(tuple[1]),
 			'page':   tuple[2],
-			'user':   tuple[3]
+			'user':   tuple[3],
+			'minor':  False,
+			'isip':   False,
 			}
 		if d['rev'] != 0:
 			d['exists'] = True
 		else:
 			d['exists'] = False
 		d['day'] = d['time'].strftime('%Y-%m-%d')
-		# FIXME: minor
+		flags = tuple[4]
+		if flags & 1:
+			d['minor'] = True
+		if flags & 2:
+			d['isip'] = True
+			d['user'] = socket.inet_ntoa(struct.pack('!I', tuple[3]))
 		return d
 
 class StringStore:
