@@ -257,7 +257,11 @@ class Committer:
 			rev += 1
 			if not meta['exists']:
 				continue
-			msg = comm['text']
+			if meta['minor']:
+				minor = ' (minor)'
+			else:
+				minor = ''
+			msg = comm['text'] + '\n\nLevitation import of page %d rev %d%s.\n' % (meta['page'], meta['rev'], minor)
 			if commit == 1:
 				fromline = ''
 			else:

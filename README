@@ -92,11 +92,11 @@ Things that work:
 
  - Use the author name in the commit instead of the user ID.
 
-
-Things that are still missing:
-
  - Store additional information in the commit message that specifies page and
    revision ID as well as whether the edit was marked as “minor”.
+
+
+Things that are still missing:
 
  - Use the page’s name as file name instead of the page ID. To do that, we need
    a meta file that stores the page names. Page name _should_ be limited to 255
