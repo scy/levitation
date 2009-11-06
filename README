@@ -151,9 +151,31 @@ Storage requirements:
 “maxrev” be the highest revision ID in the file. You may probably retrieve this
   using something like: tac dump.xml | grep -m 1 '^      <id>'
 
+“maxuser” be the highest user ID in the file. You may probably retrieve this
+  using something like:
+  grep '^        <id>' dump.xml | tr -cd '0-9\n' | sort -n | tail -n 1
+  However, since this is dead slow, rather ask the Wiki beforehand.
+
 The revision metadata storage (METAFILE) needs maxrev*17 bytes.
 
 The revision comment storage (COMMFILE) needs maxrev*257 bytes.
+
+The author name storage (USERFILE) needs maxuser*257 bytes.
+
+Those files can be deleted after an import.
+
+Additionally, the content itself needs some space. Currently the space
+efficiency isn’t too good, expect 1.5 to 3 times the size of the uncompressed
+XML data (see “Things that are strange”).
+
+Also, do not try to throw more than, say, 20.000 pages into your repo. As long
+as we’re not dividing content into subdirectories (and currently we aren’t),
+this will likely hit your “max files in a directory” limit and make OS tools
+slow. I’m working on that.
+
+Note that the filesystem the repo will be living on needs quite a few free
+inodes. If you get “no space left on device” errors with plenty of space
+available, that’s what hit you.
 
 
 Contacting the author:
