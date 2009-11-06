@@ -12,10 +12,14 @@ import sys
 import time
 import bz2
 
+# How many bytes to read at once. You probably can leave this alone.
 # FIXME: With smaller READ_SIZE this tends to crash on the final read?
 READ_SIZE = 10240000
+# The encoding for input, output and internal representation. Leave alone.
 ENCODING = 'UTF-8'
+# Don't import more than this number of _pages_ (not revisions).
 IMPORT_MAX = 100
+# Where to store meta information. Eats 17 Bytes per revision.
 METAFILE = '.import-meta'
 
 def singletext(node):
