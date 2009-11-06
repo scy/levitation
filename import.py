@@ -29,6 +29,8 @@ IMPORT_MAX = 100
 METAFILE = '.import-meta'
 # Where to store comment information. Eats 257 bytes per revision.
 COMMFILE = '.import-comm'
+# Where to store author information. Eats 257 bytes per author.
+USERFILE = '.import-user'
 
 def singletext(node):
 	if len(node.childNodes) == 0:
@@ -117,7 +119,7 @@ class StringStore:
 		return d
 
 class User:
-	def __init__(self, node):
+	def __init__(self, node, meta):
 		self.id = -1
 		self.name = None
 		self.isip = False
@@ -125,7 +127,7 @@ class User:
 			if lv1.nodeType != lv1.ELEMENT_NODE:
 				continue
 			if lv1.tagName == 'username':
-				self.name = singletext(lv1)
+				self.name = singletext(lv1).encode(ENCODING)
 			elif lv1.tagName == 'id':
 				self.id = int(singletext(lv1))
 			elif lv1.tagName == 'ip':
@@ -136,6 +138,8 @@ class User:
 				except socket.error:
 					# IP could not be parsed. Leave ID as -1 then.
 					pass
+		if not self.isip:
+			meta['user'].write(self.id, self.name)
 
 class Revision:
 	def __init__(self, node, page, meta):
@@ -153,7 +157,7 @@ class Revision:
 			elif lv1.tagName == 'timestamp':
 				self.timestamp = datetime.datetime.strptime(singletext(lv1), "%Y-%m-%dT%H:%M:%SZ")
 			elif lv1.tagName == 'contributor':
-				self.user = User(lv1)
+				self.user = User(lv1, self.meta)
 			elif lv1.tagName == 'minor':
 				self.minor = True
 			elif lv1.tagName == 'comment':
@@ -261,10 +265,16 @@ class Committer:
 			if day != meta['day']:
 				day = meta['day']
 				progress('   ' + day)
+			if meta['isip']:
+				author = meta['user']
+				authoruid = 'ip-' + author
+			else:
+				authoruid = 'uid-' + str(meta['user'])
+				author = self.meta['user'].read(meta['user'])['text']
 			out(
 				'commit refs/heads/master\n' +
 				'mark :%d\n' % commit +
-				'author User ID %d <uid-%d@git.%s> %d +0000\n' % (meta['user'], meta['user'], self.meta['meta'].domain, meta['epoch']) +
+				'author %s <%s@git.%s> %d +0000\n' % (author, authoruid, self.meta['meta'].domain, meta['epoch']) +
 				'committer Importer <importer@FIXME> %d +0000\n' % time.time() +
 				'data %d\n%s\n' % (len(msg), msg) +
 				fromline +
@@ -275,6 +285,7 @@ class Committer:
 meta = { # FIXME: Use parameters.
 	'meta': Meta(METAFILE),
 	'comm': StringStore(COMMFILE),
+	'user': StringStore(USERFILE),
 	}
 
 progress('Step 1: Creating blobs.')

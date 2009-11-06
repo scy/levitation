@@ -90,6 +90,8 @@ Things that work:
 
  - Read the Wiki URL from the XML file and set user mail addresses accordingly.
 
+ - Use the author name in the commit instead of the user ID.
+
 
 Things that are still missing:
 
@@ -104,11 +106,6 @@ Things that are still missing:
    the namespace. The meta file needs to store the namespace ID as well. Since
    there usually are only a few namespaces (10 or 20), we can keep their names
    in RAM.
-
- - Use the author name in the commit instead of the user ID. To do that, we
-   need a meta file that stores the author names. Author name _should_ be
-   limited to 255 _bytes_ UTF-8, however MediaWiki is not quite clear about
-   whether that should actually be _characters_.
 
  - Think of a neat file hierarchy for the file tree: You cannot throw 3 million
    articles into a single directory. Instead, you need additional subdirectory
