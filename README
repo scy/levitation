@@ -101,3 +101,13 @@ Things to probably rework:
    them and create commits accordingly. This would require some more memory (to
    remember all the dates and IDs and to sort them) but lower disk usage and IO
    quite a lot.
+
+
+Example usage:
+
+This will import the pdc.wikipedia.org dump into a new Git repository “repo”:
+
+  rm -rf repo; git init --bare repo && \
+    ./import.py < ~/pdcwiki-20091103-pages-meta-history.xml | \
+    GIT_DIR=repo git fast-import | \
+    sed 's/^progress //'
