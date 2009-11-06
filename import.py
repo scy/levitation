@@ -8,8 +8,10 @@ import os
 import sys
 import bz2
 
+# FIXME: With smaller READ_SIZE this tends to crash on the final read?
 READ_SIZE = 10240000
 ENCODING = 'UTF-8'
+IMPORT_MAX = 10
 
 def singletext(node):
 	if len(node.childNodes) == 0:
@@ -73,7 +75,7 @@ class XMLChunker:
 	def __init__(self):
 		self.text = self.xml = None
 		self.inpage = False
-		self.startbyte = self.readbytes = 0
+		self.startbyte = self.readbytes = self.imported = 0
 		self.fh = codecs.getreader(ENCODING)(sys.stdin)
 		self.expat = ParserCreate(ENCODING)
 		self.expat.StartElementHandler = self.find_page
@@ -104,6 +106,9 @@ class XMLChunker:
 			self.expat.EndElementHandler = None
 			self.xml += self.text[self.startbyte:self.expat.CurrentByteIndex-self.readbytes] + '</' + name.encode(ENCODING) + '>'
 			Page(self.xml).dump()
+			self.imported += 1
+			if IMPORT_MAX > 0 and self.imported >= IMPORT_MAX:
+				sys.exit(0)
 
 progress('Step 1: Creating blobs.')
 xc = XMLChunker()
