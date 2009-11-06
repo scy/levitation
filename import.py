@@ -178,7 +178,7 @@ class Page:
 class BlobWriter:
 	def __init__(self, meta):
 		self.text = self.xml = None
-		self.intag = None
+		self.intag = self.lastattrs = None
 		self.cancel = False
 		self.startbyte = self.readbytes = self.imported = 0
 		self.meta = meta
@@ -201,6 +201,7 @@ class BlobWriter:
 	def find_start(self, name, attrs):
 		if name in ('page', 'base', 'namespace'):
 			self.intag = name
+			self.lastattrs = attrs
 			self.expat.StartElementHandler = None
 			self.expat.EndElementHandler = self.find_end
 			self.startbyte = self.expat.CurrentByteIndex - self.readbytes
