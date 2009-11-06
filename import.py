@@ -19,8 +19,10 @@ READ_SIZE = 10240000
 ENCODING = 'UTF-8'
 # Don't import more than this number of _pages_ (not revisions).
 IMPORT_MAX = 100
-# Where to store meta information. Eats 17 Bytes per revision.
+# Where to store meta information. Eats 17 bytes per revision.
 METAFILE = '.import-meta'
+# Where to store comment information. Eats 257 bytes per revision.
+COMMFILE = '.import-comm'
 
 def singletext(node):
 	if len(node.childNodes) == 0:
@@ -79,6 +81,27 @@ class Meta:
 		# FIXME: minor
 		return d
 
+class StringStore:
+	def __init__(self, file):
+		self.struct = struct.Struct('Bb255s')
+		self.maxid = -1
+		self.fh = open(file, 'wb+')
+	def write(self, id, text, flags = 1):
+		data = self.struct.pack(len(text), flags, text)
+		self.fh.seek(id * self.struct.size)
+		self.fh.write(data)
+		if self.maxid < id:
+			self.maxid = id
+	def read(self, id):
+		self.fh.seek(id * self.struct.size)
+		data = self.struct.unpack(self.fh.read(self.struct.size))
+		d = {
+			'len':   data[0],
+			'flags': data[1],
+			'text':  data[2][0:data[0]]
+			}
+		return d
+
 class User:
 	def __init__(self, node):
 		self.id = -1
@@ -104,7 +127,7 @@ class Revision:
 	def __init__(self, node, page, meta):
 		self.id = -1
 		self.minor = False
-		self.timestamp = self.text = self.user = None
+		self.timestamp = self.text = self.comment = self.user = None
 		self.page = page
 		self.meta = meta
 		self.dom = node
@@ -119,10 +142,14 @@ class Revision:
 				self.user = User(lv1)
 			elif lv1.tagName == 'minor':
 				self.minor = True
+			elif lv1.tagName == 'comment':
+				self.comment = singletext(lv1)
 			elif lv1.tagName == 'text':
 				self.text = singletext(lv1)
 	def dump(self, title):
 		self.meta['meta'].write(self.id, self.timestamp, self.page, self.user, self.minor)
+		if self.comment:
+			self.meta['comm'].write(self.id, self.comment.encode(ENCODING))
 		mydata = self.text.encode(ENCODING)
 		out('blob\nmark :%d\ndata %d\n' % (self.id + 1, len(mydata)))
 		out(mydata + '\n')
@@ -199,10 +226,11 @@ class Committer:
 		day = ''
 		while rev <= self.meta['meta'].maxrev:
 			meta = self.meta['meta'].read(rev)
+			comm = self.meta['comm'].read(rev)
 			rev += 1
 			if not meta['exists']:
 				continue
-			msg = 'Revision %d' % meta['rev']
+			msg = comm['text']
 			if commit == 1:
 				fromline = ''
 			else:
@@ -221,7 +249,10 @@ class Committer:
 				)
 			commit += 1
 
-meta = {'meta': Meta(METAFILE)} # FIXME: Use a parameter.
+meta = { # FIXME: Use parameters.
+	'meta': Meta(METAFILE),
+	'comm': StringStore(COMMFILE),
+	}
 
 progress('Step 1: Creating blobs.')
 BlobWriter(meta).parse()

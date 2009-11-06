@@ -86,14 +86,13 @@ Things that work:
    file per page. All revisions are available in the history. There are some
    restrictions, read below.
 
+ - Use the original modification summary as commit message.
+
 
 Things that are still missing:
 
- - Use the original modification summary as commit message. Currently we use
-   the rather boring "Revision X". However, these summaries need to be
-   temporarily stored in an external file because we cannot keep them in RAM
-   for larger Wikis. Store additional information in the commit message that
-   specifies page and revision ID.
+ - Store additional information in the commit message that specifies page and
+   revision ID as well as whether the edit was marked as “minor”.
 
  - Use the page’s name as file name instead of the page ID. To do that, we need
    a meta file that stores the page names. Page name _should_ be limited to 255
@@ -148,6 +147,16 @@ This will import the pdc.wikipedia.org dump into a new Git repository “repo”
     ./import.py < ~/pdcwiki-20091103-pages-meta-history.xml | \
     GIT_DIR=repo git fast-import | \
     sed 's/^progress //'
+
+
+Storage requirements:
+
+“maxrev” be the highest revision ID in the file. You may probably retrieve this
+  using something like: tac dump.xml | grep -m 1 '^      <id>'
+
+The revision metadata storage (METAFILE) needs maxrev*17 bytes.
+
+The revision comment storage (COMMFILE) needs maxrev*257 bytes.
 
 
 Contacting the author:
