@@ -23,6 +23,10 @@ def singletext(node):
 		raise Exception('singletext child is not text')
 	return node.childNodes[0].data
 
+def progress(text):
+	sys.stdout.write('progress ' + text + '\n')
+	sys.stdout.flush()
+
 class Revision:
 	def __init__(self, node):
 		self.id = -1
@@ -67,7 +71,7 @@ class Page:
 			elif lv1.tagName == 'revision':
 				self.revisions.append(Revision(lv1))
 	def dump(self):
-		print '   ' + self.title.encode(ENCODING)
+		progress('   ' + self.title.encode(ENCODING))
 		for revision in self.revisions:
 			revision.dump(self.title)
 
@@ -107,6 +111,6 @@ class XMLChunker:
 			self.xml += self.text[self.startbyte:self.expat.CurrentByteIndex-self.readbytes] + '</' + name.encode(ENCODING) + '>'
 			Page(self.xml).dump()
 
-print "Step 1: Chunking by date."
+progress('Step 1: Creating blobs.')
 xc = XMLChunker()
 xc.parse()
