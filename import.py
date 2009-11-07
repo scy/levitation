@@ -27,6 +27,9 @@ ENCODING = 'UTF-8'
 # Don't import more than this number of _pages_ (not revisions).
 # Set to something <0 to mean "no limit".
 IMPORT_MAX = 100
+# How deep the page subdirectories should go. 0 is "directly under namespace",
+# 1 is "subdir using the first byte" and so on.
+DEEPNESS = 3
 # Where to store meta information. Eats 17 bytes per revision.
 METAFILE = '.import-meta'
 # Where to store comment information. Eats 257 bytes per revision.
@@ -284,9 +287,13 @@ class Committer:
 			if not meta['exists']:
 				continue
 			page = self.meta['page'].read(meta['page'])
-			title = asciiize(page['text'])
 			namespace = asciiize('%d-%s' % (page['flags'], self.meta['meta'].idtons[page['flags']]))
-			filename = namespace + '/' + title + '.mediawiki'
+			title = page['text']
+			subdirtitle = ''
+			for i in range(0, min(DEEPNESS, len(title))):
+				subdirtitle += asciiize(title[i]) + '/'
+			subdirtitle += asciiize(title)
+			filename = namespace + '/' + subdirtitle + '.mediawiki'
 			if meta['minor']:
 				minor = ' (minor)'
 			else:

@@ -99,12 +99,10 @@ Things that work:
 
  - Put pages in namespace-based subdirectories.
 
+ - Put pages in a configurably deep subdirectory hierarchy.
+
 
 Things that are still missing:
-
- - Think of a neat file hierarchy for the file tree: You cannot throw 3 million
-   articles into a single directory. Instead, you need additional subdirectory
-   levels. I’ll probably go for the first bytes of the article name.
 
  - Use command line options instead of hard-coded magic behavior.
 
