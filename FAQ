@@ -98,6 +98,18 @@ doubt that _I_ will do it, but it should be pretty straightforward.
 
 
 
+It looks to me as if importing gets slower and slower the more recent the
+commits become, right?
+-------------------------------------------------------------------------
+
+Maybe a bit (because the trees get larger), but actually not as much as you
+probably think. Levitation shows you the date in history while it writes the
+commits, and indeed the time it takes to finish one day is apparently
+increasing. However, for most Wikipedias, the number of commits per day is
+constantly increasing, so there’s simply more work to do per day.
+
+
+
 Why are you doing this anyway?
 ------------------------------
 
