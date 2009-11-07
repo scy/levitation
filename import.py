@@ -55,7 +55,7 @@ def asciiize_char(s):
 	return r
 
 def asciiize(s):
-	return re.sub('[^A-Za-z0-9_/ ()-]', asciiize_char, s)
+	return re.sub('[^A-Za-z0-9_ ()-]', asciiize_char, s)
 
 def out(text):
 	sys.stdout.write(text)
