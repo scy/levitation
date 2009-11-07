@@ -1,0 +1,110 @@
+What’s the project’s current status?
+------------------------------------
+
+Have a look a the “Things that work” section in the README.
+
+If you’re interested in how active the project is, check the commit history on
+http://github.com/scy/levitation/
+
+
+
+So, you’re running MediaWiki with Git as backend?
+-------------------------------------------------
+
+No. Currently, Levitation has nothing to do with _running_ MediaWiki at all. I
+seriously doubt it is worth the effort to adapt MediaWiki for a Git backend.
+Instead, a new frontend should be developed.
+
+
+
+Okay, so you’re planning to fork Wikipedia?
+-------------------------------------------
+
+Me? Probably not. But I know some guys who might be interested in doing it. And
+since I think that yet another centralistic Wikipedia is not the solution, I’m
+experimenting in a different direction. Namely, a distributed Wikipedia.
+
+
+
+But with Git, won’t every contributor need gigabytes of history?
+----------------------------------------------------------------
+
+First, if you haven’t heard about “git clone --depth” yet, have a look at it.
+
+Second, my vision is to have 5 to 20 “Wikipedias” per language that focus on
+different aspects and have different policies. These would be hosted by someone
+having enough resources to do that, and editing articles would be done via a
+web interface as it is now.
+
+The difference to today is, that the Wikipedias can easily transfer content
+between each other, including history and using Git’s powerful merging
+capabilities. Additionally, everyone who wants to clone the whole Wikipedia can
+do it, with full history, and without waiting for a monthly dump. Instead,
+pulling from Wikipedia gives you the content as it was at that second.
+
+Also, Git developers are currently working on the possibility to retrieve just
+parts of the repository.
+
+
+
+Would Levitation allow to incrementally import changes made in the current
+centralistic Wikipedia into one’s local Git clone?
+--------------------------------------------------------------------------
+
+I think so. There are some possible issues though.
+
+If, for example, you would update only one article’s history and then another
+one’s, history would be in the wrong order and need to be rewritten. Git can do
+that easily, but the incremental importing tool would have to consider that.
+
+Another problem could be that articles you have in your local clone might get
+deleted upstream. If they are, they no longer show up in dumps _at_all_.
+
+
+
+Would Levitation allow it to make changes to the local clone and maintain these
+changes even when importing new stuff from the current centralistic Wikipedia?
+-------------------------------------------------------------------------------
+
+Yes, that’s something that happens all the time in distributed development.
+Keep the upstream Wikipedia in one branch, your changes in another, and
+frequently rebase or merge. With things like git-rerere, you can minimize the
+amount of manual merging conflicts.
+
+
+
+Would Levitation allow it to make changes to the local clone and push them back
+to the current centralistic Wikipedia?
+-------------------------------------------------------------------------------
+
+Absolutely, just like git-svn does. Nobody has written that code yet, and I
+doubt that _I_ will do it, but it should be pretty straightforward.
+
+
+
+Why are you doing this anyway?
+------------------------------
+
+Because I love Git and the development model DVCSs allow, because I’m fed up
+with de.wikipedia’s attitudes on policy and because I think using Git is one of
+the better solutions. I would hate it if other people developed another
+software that’s essentially as flawed as the current Wikipedia model.
+
+
+
+How can I say “thank you”?
+--------------------------
+
+Have a look at http://scytale.name/wishlist/, which is continously updated. I
+also like amazon.de gift certificates. :)
+
+If you, like me, don’t have that much money to spend it on other people,
+writing patches and spreading the word about Levitation is an option as well.
+
+
+
+I have a question that’s not answered here.
+-------------------------------------------
+
+Check http://scytale.name/contact/ or send me a patch to this FAQ containing
+your question. :)
