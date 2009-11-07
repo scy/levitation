@@ -210,7 +210,7 @@ class Page:
 			if lv1.tagName == 'title':
 				self.fulltitle = singletext(lv1).encode(ENCODING)
 				split = self.fulltitle.split(':', 1)
-				if self.meta['meta'].nstoid.has_key(split[0]):
+				if len(split) > 1 and self.meta['meta'].nstoid.has_key(split[0]):
 					self.nsid = self.meta['meta'].nstoid[split[0]]
 					self.title = split[1]
 				else:
