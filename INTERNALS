@@ -1,0 +1,55 @@
+Some information on the problems and solutions this project is about.
+
+In the dump files, the first <page> tag contains the first page that has been
+created and all of its revisions. The second <page> tag contains the second
+page and all of its revisions, and so on. However, when importing into Git, you
+need that data sorted by the revision’s time, across all pages.
+
+Confused? Let me rephrase that. The data in the XML dump is grouped by pages.
+Assuming the Wiki was created in 2005, you get the very first revision of the
+very first page and then every following revision _of_that_page_, even if the
+last revision is from 2 days ago. Then, the stream goes on with the second page
+that was ever created, back in 2005, and again all of its history. The pages in
+the XML are ordered by the date they were first created.
+
+In contrast, Git wants the first commit to be the state _of_the_whole_Wiki_ at
+the time the first page was created. That one is easy, as it is the first
+revision in the XML stream. The second commit is not so easy, though. If the
+second change on that Wiki was to modify the one (and only) existing page,
+that’s fine. If, however, a second page was created, the next commit needs to
+add that page’s content, without first doing something with the other revisions
+of the first page.
+
+Therefore you need to reorder the data in the dump. Reordering several TB of
+data isn’t the most trivial thing to do. A careful balance between performance,
+disk and memory usage must be found. The plan is as follows.
+
+In order to minimize the amount of disk space required, the import.py tool
+reads the XML stream from stdin, allowing you to pipe a file that is
+decompressed on the fly (using bzip2 or 7zip) through it.
+
+import.py’s stdout should be connected to git-fast-import, which will take care
+of writing the revisions to disk. Since they are in the wrong order, only blobs
+will be created at that time. import.py will use the “mark” feature of
+git-fast-import to provide the MediaWiki revision ID (which is unique over all
+pages) to git-fast-import. That way, we will later be able to reference that
+particular revision when creating commits.
+
+However, we still need to remember all the revisions’ metadata and be able to
+access it in a fast way given the revision ID. To be able to do that, an
+additional metadata file will be written while reading the XML stream. It
+contains, for each revision, a fixed-width dataset, at the position
+(revision-number * dataset-width).
+
+Additionally, we need to keep track of user-id/user-name relations. A second
+file keeps track of those, using 255-byte strings per user, again at the
+position (user-id * 256) since the first byte stores string length.
+
+The same is true for page titles, therefore we need a third file.
+
+Now we have to walk through the revisions file and create a commit using the
+blob we already created, collecting page title and author name from the other
+files as we go.
+
+The real content files will need to be put into different directories because
+of limitations in the maximum number of files per directory.
