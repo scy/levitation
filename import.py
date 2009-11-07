@@ -54,6 +54,7 @@ class Meta:
 		self.maxrev = -1
 		self.fh = open(file, 'wb+')
 		self.domain = 'unknown.invalid'
+		self.namespaces = {}
 	def write(self, rev, time, page, author, minor):
 		flags = 0
 		if minor:
@@ -164,7 +165,7 @@ class Revision:
 				self.comment = singletext(lv1)
 			elif lv1.tagName == 'text':
 				self.text = singletext(lv1)
-	def dump(self, title):
+	def dump(self, namespace, title):
 		self.meta['meta'].write(self.id, self.timestamp, self.page, self.user, self.minor)
 		if self.comment:
 			self.meta['comm'].write(self.id, self.comment.encode(ENCODING))
@@ -176,22 +177,30 @@ class Page:
 	def __init__(self, dom, meta):
 		self.revisions = []
 		self.id = -1
-		self.title = ''
+		self.namespace = 0
+		self.title = self.fulltitle = ''
 		self.meta = meta
 		self.dom = dom
 		for lv1 in self.dom.documentElement.childNodes:
 			if lv1.nodeType != lv1.ELEMENT_NODE:
 				continue
 			if lv1.tagName == 'title':
-				self.title = singletext(lv1)
+				self.fulltitle = singletext(lv1).encode(ENCODING)
+				split = self.fulltitle.split(':', 1)
+				if self.meta['meta'].namespaces.has_key(split[0]):
+					self.namespace = self.meta['meta'].namespaces[split[0]]
+					self.title = split[1]
+				else:
+					self.namespace = self.meta['meta'].namespaces['']
+					self.title = self.fulltitle
 			elif lv1.tagName == 'id':
 				self.id = int(singletext(lv1))
 			elif lv1.tagName == 'revision':
 				self.revisions.append(Revision(lv1, self.id, self.meta))
 	def dump(self):
-		progress('   ' + self.title.encode(ENCODING))
+		progress('   ' + self.fulltitle)
 		for revision in self.revisions:
-			revision.dump(self.title)
+			revision.dump(self.namespace, self.title)
 
 class BlobWriter:
 	def __init__(self, meta):
@@ -243,7 +252,7 @@ class BlobWriter:
 			elif name == 'base':
 				self.meta['meta'].domain = urlparse.urlparse(singletext(dom.documentElement)).hostname.encode(ENCODING)
 			elif name == 'namespace':
-				pass
+				self.meta['meta'].namespaces[singletext(dom.documentElement).encode(ENCODING)] = int(self.lastattrs['key'])
 
 class Committer:
 	def __init__(self, meta):
