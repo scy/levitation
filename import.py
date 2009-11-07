@@ -54,7 +54,7 @@ class Meta:
 		self.maxrev = -1
 		self.fh = open(file, 'wb+')
 		self.domain = 'unknown.invalid'
-		self.namespaces = {}
+		self.nstoid = self.idtons = {}
 	def write(self, rev, time, page, author, minor):
 		flags = 0
 		if minor:
@@ -177,7 +177,7 @@ class Page:
 	def __init__(self, dom, meta):
 		self.revisions = []
 		self.id = -1
-		self.namespace = 0
+		self.nsid = 0
 		self.title = self.fulltitle = ''
 		self.meta = meta
 		self.dom = dom
@@ -187,11 +187,11 @@ class Page:
 			if lv1.tagName == 'title':
 				self.fulltitle = singletext(lv1).encode(ENCODING)
 				split = self.fulltitle.split(':', 1)
-				if self.meta['meta'].namespaces.has_key(split[0]):
-					self.namespace = self.meta['meta'].namespaces[split[0]]
+				if self.meta['meta'].nstoid.has_key(split[0]):
+					self.nsid = self.meta['meta'].nstoid[split[0]]
 					self.title = split[1]
 				else:
-					self.namespace = self.meta['meta'].namespaces['']
+					self.nsid = self.meta['meta'].nstoid['']
 					self.title = self.fulltitle
 			elif lv1.tagName == 'id':
 				self.id = int(singletext(lv1))
@@ -200,7 +200,7 @@ class Page:
 	def dump(self):
 		progress('   ' + self.fulltitle)
 		for revision in self.revisions:
-			revision.dump(self.namespace, self.title)
+			revision.dump(self.nsid, self.title)
 
 class BlobWriter:
 	def __init__(self, meta):
@@ -252,7 +252,10 @@ class BlobWriter:
 			elif name == 'base':
 				self.meta['meta'].domain = urlparse.urlparse(singletext(dom.documentElement)).hostname.encode(ENCODING)
 			elif name == 'namespace':
-				self.meta['meta'].namespaces[singletext(dom.documentElement).encode(ENCODING)] = int(self.lastattrs['key'])
+				k = int(self.lastattrs['key'])
+				v = singletext(dom.documentElement).encode(ENCODING)
+				self.meta['meta'].idtons[k] = v
+				self.meta['meta'].nstoid[v] = k
 
 class Committer:
 	def __init__(self, meta):
