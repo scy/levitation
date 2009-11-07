@@ -125,6 +125,9 @@ class StringStore:
 		self.maxid = -1
 		self.fh = open(file, 'wb+')
 	def write(self, id, text, flags = 1):
+		if len(text) > 255:
+			progress('warning: trimming %s bytes long text: 0x%s' % (len(text), text.encode('hex')))
+			text = text[0:255].decode(ENCODING, 'ignore').encode(ENCODING)
 		data = self.struct.pack(len(text), flags, text)
 		self.fh.seek(id * self.struct.size)
 		self.fh.write(data)
