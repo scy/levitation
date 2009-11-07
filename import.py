@@ -33,6 +33,8 @@ METAFILE = '.import-meta'
 COMMFILE = '.import-comm'
 # Where to store author information. Eats 257 bytes per author.
 USERFILE = '.import-user'
+# Where to store page title information. Eats 257 bytes per page.
+PAGEFILE = '.import-page'
 
 def singletext(node):
 	if len(node.childNodes) == 0:
@@ -176,7 +178,7 @@ class Revision:
 				self.comment = singletext(lv1)
 			elif lv1.tagName == 'text':
 				self.text = singletext(lv1)
-	def dump(self, namespace, title):
+	def dump(self):
 		self.meta['meta'].write(self.id, self.timestamp, self.page, self.user, self.minor)
 		if self.comment:
 			self.meta['comm'].write(self.id, self.comment.encode(ENCODING))
@@ -208,10 +210,11 @@ class Page:
 				self.id = int(singletext(lv1))
 			elif lv1.tagName == 'revision':
 				self.revisions.append(Revision(lv1, self.id, self.meta))
+		self.meta['page'].write(self.id, self.title, self.nsid)
 	def dump(self):
 		progress('   ' + self.fulltitle)
 		for revision in self.revisions:
-			revision.dump(self.nsid, self.title)
+			revision.dump()
 
 class BlobWriter:
 	def __init__(self, meta):
@@ -280,6 +283,10 @@ class Committer:
 			rev += 1
 			if not meta['exists']:
 				continue
+			page = self.meta['page'].read(meta['page'])
+			title = asciiize(page['text'])
+			namespace = asciiize('%d-%s' % (page['flags'], self.meta['meta'].idtons[page['flags']]))
+			filename = namespace + '/' + title + '.mediawiki'
 			if meta['minor']:
 				minor = ' (minor)'
 			else:
@@ -305,7 +312,7 @@ class Committer:
 				'committer Importer <importer@FIXME> %d +0000\n' % time.time() +
 				'data %d\n%s\n' % (len(msg), msg) +
 				fromline +
-				'M 100644 :%d %d.mediawiki\n' % (meta['rev'] + 1, meta['page'])
+				'M 100644 :%d %s\n' % (meta['rev'] + 1, filename)
 				)
 			commit += 1
 
@@ -313,6 +320,7 @@ meta = { # FIXME: Use parameters.
 	'meta': Meta(METAFILE),
 	'comm': StringStore(COMMFILE),
 	'user': StringStore(USERFILE),
+	'page': StringStore(PAGEFILE),
 	}
 
 progress('Step 1: Creating blobs.')

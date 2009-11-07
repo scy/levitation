@@ -95,21 +95,16 @@ Things that work:
  - Store additional information in the commit message that specifies page and
    revision ID as well as whether the edit was marked as “minor”.
 
+ - Use the page’s name as file name instead of the page ID.
+
+ - Put pages in namespace-based subdirectories.
+
 
 Things that are still missing:
 
- - Use the page’s name as file name instead of the page ID. To do that, we need
-   a meta file that stores the page names. Page name _should_ be limited to 255
-   _bytes_ UTF-8, however MediaWiki is not quite clear about whether that
-   should actually be _characters_. Additionally, the page name does not
-   include the namespace name, even if though in the dump it’s prefixed with
-   the namespace. The meta file needs to store the namespace ID as well. Since
-   there usually are only a few namespaces (10 or 20), we can keep their names
-   in RAM.
-
  - Think of a neat file hierarchy for the file tree: You cannot throw 3 million
    articles into a single directory. Instead, you need additional subdirectory
-   levels. I’ll probably go for the first n bytes of the hashed article name.
+   levels. I’ll probably go for the first bytes of the article name.
 
  - Use command line options instead of hard-coded magic behavior.
 
@@ -123,7 +118,8 @@ Things that are strange:
 
  - The resulting Git repo is larger than the _uncompressed_ XML file. Delta
    compression is working fine. I suspect the problem is large trees because
-   of the still missing subdirectories.
+   of the still missing subdirectories. “git gc --aggressive” seems to help a
+   lot, thanks to Hydrox for pointing that out.
 
 
 Things that are cool:
@@ -155,19 +151,19 @@ This will import the pdc.wikipedia.org dump into a new Git repository “repo”
 
 Storage requirements:
 
-“maxrev” be the highest revision ID in the file. You may probably retrieve this
-  using something like: tac dump.xml | grep -m 1 '^      <id>'
+“maxrev” be the highest revision ID in the file.
 
-“maxuser” be the highest user ID in the file. You may probably retrieve this
-  using something like:
-  grep '^        <id>' dump.xml | tr -cd '0-9\n' | sort -n | tail -n 1
-  However, since this is dead slow, rather ask the Wiki beforehand.
+“maxpage” be the highest page ID in the file.
+
+“maxuser” be the highest user ID in the file.
 
 The revision metadata storage (METAFILE) needs maxrev*17 bytes.
 
 The revision comment storage (COMMFILE) needs maxrev*257 bytes.
 
 The author name storage (USERFILE) needs maxuser*257 bytes.
+
+The page title storage (PAGEFILE) needs maxpage*257 bytes.
 
 Those files can be deleted after an import.
 
