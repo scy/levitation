@@ -140,6 +140,11 @@ Things that are cool:
 
 Example usage:
 
+Please note that there’s the variable IMPORT_MAX, right at the beginning of
+import.py. By default it’s set to 100, so Levitation will only import 100
+pages, not more. This protects you from filling your disk when you’re too
+impatient. ;) Set it to -1 when you’re ready for a “real” run.
+
 This will import the pdc.wikipedia.org dump into a new Git repository “repo”:
 
   rm -rf repo; git init --bare repo && \
