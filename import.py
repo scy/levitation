@@ -12,6 +12,7 @@ from calendar import timegm
 import codecs
 import datetime
 import os
+import re
 import socket
 import struct
 import sys
@@ -24,6 +25,7 @@ READ_SIZE = 10240000
 # The encoding for input, output and internal representation. Leave alone.
 ENCODING = 'UTF-8'
 # Don't import more than this number of _pages_ (not revisions).
+# Set to something <0 to mean "no limit".
 IMPORT_MAX = 100
 # Where to store meta information. Eats 17 bytes per revision.
 METAFILE = '.import-meta'
@@ -40,6 +42,15 @@ def singletext(node):
 	if node.childNodes[0].nodeType != node.TEXT_NODE:
 		raise Exception('singletext child is not text')
 	return node.childNodes[0].data
+
+def asciiize_char(s):
+	r = ''
+	for x in s.group(0):
+		r += '.' + x.encode('hex').upper()
+	return r
+
+def asciiize(s):
+	return re.sub('[^A-Za-z0-9_/ ()-]', asciiize_char, s)
 
 def out(text):
 	sys.stdout.write(text)
