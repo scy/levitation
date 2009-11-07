@@ -77,6 +77,8 @@ class Meta:
 			flags += 1
 		if author.isip:
 			flags += 2
+		if author.isdel:
+			flags += 4
 		data = self.struct.pack(
 			rev,
 			timegm(time.utctimetuple()),
@@ -100,6 +102,7 @@ class Meta:
 			'user':   tuple[3],
 			'minor':  False,
 			'isip':   False,
+			'isdel':  False,
 			}
 		if d['rev'] != 0:
 			d['exists'] = True
@@ -112,6 +115,8 @@ class Meta:
 		if flags & 2:
 			d['isip'] = True
 			d['user'] = socket.inet_ntoa(struct.pack('!I', tuple[3]))
+		if flags & 4:
+			d['isdel'] = True
 		return d
 
 class StringStore:
@@ -139,7 +144,9 @@ class User:
 	def __init__(self, node, meta):
 		self.id = -1
 		self.name = None
-		self.isip = False
+		self.isip = self.isdel = False
+		if node.hasAttribute('deleted') and node.getAttribute('deleted') == 'deleted':
+			self.isdel = True
 		for lv1 in node.childNodes:
 			if lv1.nodeType != lv1.ELEMENT_NODE:
 				continue
@@ -155,7 +162,7 @@ class User:
 				except socket.error:
 					# IP could not be parsed. Leave ID as -1 then.
 					pass
-		if not self.isip:
+		if not (self.isip or self.isdel):
 			meta['user'].write(self.id, self.name)
 
 class Revision:
@@ -309,6 +316,9 @@ class Committer:
 			if meta['isip']:
 				author = meta['user']
 				authoruid = 'ip-' + author
+			elif meta['isdel']:
+				author = '[deleted user]'
+				authoruid = 'deleted'
 			else:
 				authoruid = 'uid-' + str(meta['user'])
 				author = self.meta['user'].read(meta['user'])['text']
