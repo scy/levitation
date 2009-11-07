@@ -1,8 +1,8 @@
 This is Levitation, a project to convert Wikipedia database dumps into Git
 repositories. It has been successfully tested with a small Wiki
 (pdc.wikipedia.org) having 3,700 articles and 40,000 revisions. Importing
-those took 10 minutes on a Core 2 Duo 1.66 GHz. RAM usage is minimal: Pages are
-imported one after the other, it will at most require the amount of memory
+those took 1.5 minutes on a Core 2 Duo 1.66 GHz. RAM usage is minimal: Pages
+are imported one after the other, it will at most require the amount of memory
 needed to keep all revisions of a single page into memory. You should be safe
 with 1 GB of RAM.
 
@@ -95,7 +95,9 @@ Things that work:
  - Store additional information in the commit message that specifies page and
    revision ID as well as whether the edit was marked as “minor”.
 
- - Use the page’s name as file name instead of the page ID.
+ - Use the page’s name as file name instead of the page ID. Non-ASCII
+   characters and some ASCII ones will be replaced by “.XX”, where .XX is their
+   hex value.
 
  - Put pages in namespace-based subdirectories.
 
@@ -114,10 +116,9 @@ Things that are still missing:
 
 Things that are strange:
 
- - The resulting Git repo is larger than the _uncompressed_ XML file. Delta
-   compression is working fine. I suspect the problem is large trees because
-   of the still missing subdirectories. “git gc --aggressive” seems to help a
-   lot, thanks to Hydrox for pointing that out.
+ - Since we use subdirectories, the Git repo is no longer larger than the
+   uncompressed XML file, but instead about 30% of it. This is good. However,
+   it is still way larger than the bz2 compressed file, and I don’t know why.
 
 
 Things that are cool:
@@ -165,18 +166,13 @@ The page title storage (PAGEFILE) needs maxpage*257 bytes.
 
 Those files can be deleted after an import.
 
-Additionally, the content itself needs some space. Currently the space
-efficiency isn’t too good, expect 1.5 to 3 times the size of the uncompressed
-XML data (see “Things that are strange”).
+Additionally, the content itself needs some space. My test repo was about 30%
+the size of the uncompressed XML, that is about 800% the size of the bz2
+compressed XML data (see “Things that are strange”).
 
-Also, do not try to throw more than, say, 20.000 pages into your repo. As long
-as we’re not dividing content into subdirectories (and currently we aren’t),
-this will likely hit your “max files in a directory” limit and make OS tools
-slow. I’m working on that.
-
-Note that the filesystem the repo will be living on needs quite a few free
-inodes. If you get “no space left on device” errors with plenty of space
-available, that’s what hit you.
+Note that if you want to check out a working copy, the filesystem it will be
+living on needs quite a few free inodes. If you get “no space left on device”
+errors with plenty of space available, that’s what hit you.
 
 
 Contacting the author:
@@ -189,6 +185,8 @@ Find ways to contact me on http://scytale.name/contact/, talk to me on Twitter
 (@Scytale) or on IRC (freenode, #oqlt).
 
 Get the most up-to-date code at http://scytale.name/proj/levitation/.
+
+Please also read the FAQ if you have any questions, including “how can I help”.
 
 
 This whole bunch of tasty bytes is licensed under the terms of the WTFPLv2.
