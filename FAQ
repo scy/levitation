@@ -120,14 +120,31 @@ software that’s essentially as flawed as the current Wikipedia model.
 
 
 
-How can I say “thank you”?
---------------------------
+Me too, how can I help or say “thank you”?
+------------------------------------------
 
-Have a look at http://scytale.name/wish/, which is continously updated. I also
-like amazon.de gift certificates. :)
+Play around with it and tell me about your experience.
+
+If you’re good at Python, rewrite some of my code to be less ugly. One commit
+per change please, I’m a control freak.
+
+If you’re a Git guru, I’d love some hints about how to make the resulting repo
+smaller and improve overall performance. If you know a Git guru, ask him.
+
+If you own a powerful box, import a large wiki and get in touch with me, I’m
+interested in size and performance.
+
+Implement some of the “Things that are still missing” (see README). Please ask
+me in advance before doing larger changes to avoid your patch getting rejected.
+
+I have invested about a week of work in this tool, any material gratification
+would be greatly appreciated. Have a look at http://scytale.name/wish/, which
+is continously updated. I also like amazon.de gift certificates. :)
 
 If you, like me, don’t have that much money to spend it on other people,
 writing patches and spreading the word about Levitation is an option as well.
+So, write blog posts or talk to people on Git and Wikipedia mailing lists
+about the project.
 
 
 
