@@ -159,7 +159,7 @@ class User:
 				self.isip = True
 				try:
 					self.id = struct.unpack('!I', socket.inet_aton(singletext(lv1)))[0]
-				except socket.error:
+				except (socket.error, UnicodeEncodeError):
 					# IP could not be parsed. Leave ID as -1 then.
 					pass
 		if not (self.isip or self.isdel):
