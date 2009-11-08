@@ -32,8 +32,8 @@ def parse_args(args):
 	usage = "usage: %prog [options] < pages-meta-history.xml | git fast-import | sed 's/^progress //'"
 	parser = OptionParser(usage=usage)
 	parser.add_option("-m", "--max", dest="IMPORT_MAX", metavar="IMPORT_MAX",
-			help="Specify the maxium pages to import, -1 for all (default: -1)",
-			default=-1, type="int")
+			help="Specify the maxium pages to import, -1 for all (default: 100)",
+			default=100, type="int")
 	parser.add_option("-d", "--deepness", dest="DEEPNESS", metavar="DEEPNESS",
 			help="Specify the deepness of the result directory structure (default: 3)",
 			default=3, type="int")
