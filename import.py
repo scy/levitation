@@ -18,6 +18,7 @@ import struct
 import sys
 import time
 import urlparse
+import getopt
 
 # How many bytes to read at once. You probably can leave this alone.
 # FIXME: With smaller READ_SIZE this tends to crash on the final read?
@@ -26,7 +27,7 @@ READ_SIZE = 10240000
 ENCODING = 'UTF-8'
 # Don't import more than this number of _pages_ (not revisions).
 # Set to something <0 to mean "no limit".
-IMPORT_MAX = 100
+IMPORT_MAX = -1
 # How deep the page subdirectories should go. 0 is "directly under namespace",
 # 1 is "subdir using the first byte" and so on.
 DEEPNESS = 3
@@ -38,6 +39,67 @@ COMMFILE = '.import-comm'
 USERFILE = '.import-user'
 # Where to store page title information. Eats 257 bytes per page.
 PAGEFILE = '.import-page'
+
+
+def parse_args(args):
+	try:
+		optlist, args = getopt.getopt(args, "hm:d:M:C:U:P", 
+				['help', 'max=', 'deepness=', 'metafile=', 
+				 'commfile=', 'userfile=', 'pagefile='])
+	except getopt.GetoptError, err:
+		# print help information and exit:
+		print str(err) # will print something like "option -a not recognized"
+		usage()
+		sys.exit(2)
+	
+	for o, a in optlist:
+		if o in ('-h', '--help'):
+			usage()
+			exit(0)
+		elif o in ('-m', '--max'):
+			try:
+				print a
+				global IMPORT_MAX
+				IMPORT_MAX = int(a)
+			except:
+				print "ERROR: Can't parse --max option"
+				usage()
+				sys.exit(-1)
+		elif o in ('-d', '--deepness'):
+			try:
+				global DEEPNESS
+				DEEPNESS = int(a)
+			except:
+				print "ERROR: Can't parse --deepness option"
+				usage()
+				sys.exit(-1)
+		elif o in ('-M', '--metafile'):
+			global METAFILE
+			METAFILE = a
+		elif o in ('-C', '--commfile'):
+			global COMMFILE
+			COMMFILE = a
+		elif o in ('-U', '--userfile'):
+			global USERFILE
+			USERFILE = a
+		elif o in ('-P', '--pagefile'):
+			global PAGEFILE
+			PAGEFILE = a
+		else:
+			assert False, "unhandled option"
+
+def usage():
+	sys.stderr.write("""Usage: python import.py [options] < meta-pages-history.xml | git fast-import | sed 's/^progress //'
+
+    -h | --help               Print out this help
+    -m | --max=IMPORT_MAX     Specify the maxium pages to import, -1 for all (default: -1)
+    -d | --deepness=DEEPNESS  Specify the deepness of the result directory structure (default: 3)
+    -M | --metafile=METAFILE  File for meta information (17 bytes/rev) (default: .import-meta)
+    -C | --commfile=COMMFILE  File for commentary information (257 bytes/rev) (default: .import-comm)
+    -U | --userfile=USERFILE  File for author information (257 bytes/author) (default: .import-user)
+    -P | --pagefile=PAGEFILE  File for page information (257 bytes/page) (default: .import-page)
+""")
+
 
 def singletext(node):
 	if len(node.childNodes) == 0:
@@ -342,6 +404,8 @@ meta = { # FIXME: Use parameters.
 	'user': StringStore(USERFILE),
 	'page': StringStore(PAGEFILE),
 	}
+
+parse_args(sys.argv[1:])
 
 progress('Step 1: Creating blobs.')
 BlobWriter(meta).parse()
