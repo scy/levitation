@@ -27,7 +27,6 @@ READ_SIZE = 10240000
 ENCODING = 'UTF-8'
 
 
-
 def parse_args(args):
 	usage = 'Usage: git init --bare repo && bzcat pages-meta-history.xml.bz2 | \\\n' \
 	        '       %prog [options] | GIT_DIR=repo git fast-import | sed \'s/^progress //\''
@@ -38,6 +37,9 @@ def parse_args(args):
 	parser.add_option("-d", "--deepness", dest="DEEPNESS", metavar="DEEPNESS",
 			help="Specify the deepness of the result directory structure (default: 3)",
 			default=3, type="int")
+	parser.add_option("-c", "--committer", dest="COMMITTER", metavar="COMITTER",
+			help="git \"Committer\" used while doing the single commits (default: \"Importer <importer@FIXME>\")",
+			default="Importer <importer@FIXME>")
 	parser.add_option("-M", "--metafile", dest="METAFILE", metavar="META",
 			help="File for storing meta information (17 bytes/rev) (default: .import-meta)",
 			default=".import-meta")
@@ -344,7 +346,7 @@ class Committer:
 				'commit refs/heads/master\n' +
 				'mark :%d\n' % commit +
 				'author %s <%s@git.%s> %d +0000\n' % (author, authoruid, self.meta['meta'].domain, meta['epoch']) +
-				'committer Importer <importer@FIXME> %d +0000\n' % time.time() +
+				'committer %s %d +0000\n' % (self.meta['options'].COMMITTER, time.time()) +
 				'data %d\n%s\n' % (len(msg), msg) +
 				fromline +
 				'M 100644 :%d %s\n' % (meta['rev'] + 1, filename)
