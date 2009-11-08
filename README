@@ -49,10 +49,11 @@ Things that work:
 
  - Put pages in a configurably deep subdirectory hierarchy.
 
+ - Use command line options instead of hard-coded magic behavior. Thanks to
+   stettberger for adding this.
+
 
 Things that are still missing:
-
- - Use command line options instead of hard-coded magic behavior.
 
  - Use a locally timezoned timestamp for the commit date instead of an UTC one.
 
@@ -93,6 +94,8 @@ This will import the pdc.wikipedia.org dump into a new Git repository “repo”
     GIT_DIR=repo git fast-import | \
     sed 's/^progress //'
 
+Execute “import.py --help” to see all available options.
+
 
 Storage requirements:
 
@@ -102,13 +105,13 @@ Storage requirements:
 
 “maxuser” be the highest user ID in the file.
 
-The revision metadata storage (METAFILE) needs maxrev*17 bytes.
+The revision metadata storage needs maxrev*17 bytes.
 
-The revision comment storage (COMMFILE) needs maxrev*257 bytes.
+The revision comment storage needs maxrev*257 bytes.
 
-The author name storage (USERFILE) needs maxuser*257 bytes.
+The author name storage needs maxuser*257 bytes.
 
-The page title storage (PAGEFILE) needs maxpage*257 bytes.
+The page title storage needs maxpage*257 bytes.
 
 Those files can be deleted after an import.
 
