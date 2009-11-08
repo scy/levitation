@@ -29,7 +29,8 @@ ENCODING = 'UTF-8'
 
 
 def parse_args(args):
-	usage = "usage: %prog [options] < pages-meta-history.xml | git fast-import | sed 's/^progress //'"
+	usage = 'Usage: git init --bare repo && bzcat pages-meta-history.xml.bz2 | \\\n' \
+	        '       %prog [options] | GIT_DIR=repo git fast-import | sed \'s/^progress //\''
 	parser = OptionParser(usage=usage)
 	parser.add_option("-m", "--max", dest="IMPORT_MAX", metavar="IMPORT_MAX",
 			help="Specify the maxium pages to import, -1 for all (default: 100)",
