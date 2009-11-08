@@ -38,8 +38,8 @@ def parse_args(args):
 			help="Specify the deepness of the result directory structure (default: 3)",
 			default=3, type="int")
 	parser.add_option("-c", "--committer", dest="COMMITTER", metavar="COMITTER",
-			help="git \"Committer\" used while doing the single commits (default: \"Importer <importer@FIXME>\")",
-			default="Importer <importer@FIXME>")
+			help="git \"Committer\" used while doing the commits (default: \"Levitation <levitation@scytale.name>\")",
+			default="Levitation <levitation@scytale.name>")
 	parser.add_option("-M", "--metafile", dest="METAFILE", metavar="META",
 			help="File for storing meta information (17 bytes/rev) (default: .import-meta)",
 			default=".import-meta")
