@@ -18,88 +18,39 @@ import struct
 import sys
 import time
 import urlparse
-import getopt
+from optparse import OptionParser
 
 # How many bytes to read at once. You probably can leave this alone.
 # FIXME: With smaller READ_SIZE this tends to crash on the final read?
 READ_SIZE = 10240000
 # The encoding for input, output and internal representation. Leave alone.
 ENCODING = 'UTF-8'
-# Don't import more than this number of _pages_ (not revisions).
-# Set to something <0 to mean "no limit".
-IMPORT_MAX = -1
-# How deep the page subdirectories should go. 0 is "directly under namespace",
-# 1 is "subdir using the first byte" and so on.
-DEEPNESS = 3
-# Where to store meta information. Eats 17 bytes per revision.
-METAFILE = '.import-meta'
-# Where to store comment information. Eats 257 bytes per revision.
-COMMFILE = '.import-comm'
-# Where to store author information. Eats 257 bytes per author.
-USERFILE = '.import-user'
-# Where to store page title information. Eats 257 bytes per page.
-PAGEFILE = '.import-page'
+
 
 
 def parse_args(args):
-	try:
-		optlist, args = getopt.getopt(args, "hm:d:M:C:U:P", 
-				['help', 'max=', 'deepness=', 'metafile=', 
-				 'commfile=', 'userfile=', 'pagefile='])
-	except getopt.GetoptError, err:
-		# print help information and exit:
-		print str(err) # will print something like "option -a not recognized"
-		usage()
-		sys.exit(2)
-	
-	for o, a in optlist:
-		if o in ('-h', '--help'):
-			usage()
-			exit(0)
-		elif o in ('-m', '--max'):
-			try:
-				print a
-				global IMPORT_MAX
-				IMPORT_MAX = int(a)
-			except:
-				print "ERROR: Can't parse --max option"
-				usage()
-				sys.exit(-1)
-		elif o in ('-d', '--deepness'):
-			try:
-				global DEEPNESS
-				DEEPNESS = int(a)
-			except:
-				print "ERROR: Can't parse --deepness option"
-				usage()
-				sys.exit(-1)
-		elif o in ('-M', '--metafile'):
-			global METAFILE
-			METAFILE = a
-		elif o in ('-C', '--commfile'):
-			global COMMFILE
-			COMMFILE = a
-		elif o in ('-U', '--userfile'):
-			global USERFILE
-			USERFILE = a
-		elif o in ('-P', '--pagefile'):
-			global PAGEFILE
-			PAGEFILE = a
-		else:
-			assert False, "unhandled option"
-
-def usage():
-	sys.stderr.write("""Usage: python import.py [options] < meta-pages-history.xml | git fast-import | sed 's/^progress //'
-
-    -h | --help               Print out this help
-    -m | --max=IMPORT_MAX     Specify the maxium pages to import, -1 for all (default: -1)
-    -d | --deepness=DEEPNESS  Specify the deepness of the result directory structure (default: 3)
-    -M | --metafile=METAFILE  File for meta information (17 bytes/rev) (default: .import-meta)
-    -C | --commfile=COMMFILE  File for commentary information (257 bytes/rev) (default: .import-comm)
-    -U | --userfile=USERFILE  File for author information (257 bytes/author) (default: .import-user)
-    -P | --pagefile=PAGEFILE  File for page information (257 bytes/page) (default: .import-page)
-""")
-
+	usage = "usage: %prog [options] < pages-meta-history.xml | git fast-import | sed 's/^progress //'"
+	parser = OptionParser(usage=usage)
+	parser.add_option("-m", "--max", dest="IMPORT_MAX", metavar="IMPORT_MAX",
+			help="Specify the maxium pages to import, -1 for all (default: -1)",
+			default=-1, type="int")
+	parser.add_option("-d", "--deepness", dest="DEEPNESS", metavar="DEEPNESS",
+			help="Specify the deepness of the result directory structure (default: 3)",
+			default=3, type="int")
+	parser.add_option("-M", "--metafile", dest="METAFILE", metavar="META",
+			help="File for storing meta information (17 bytes/rev) (default: .import-meta)",
+			default=".import-meta")
+	parser.add_option("-C", "--commfile", dest="COMMFILE", metavar="COMM",
+			help="File for storing comment information (257 bytes/rev) (default: .import-comm)",
+			default=".import-comm")
+	parser.add_option("-U", "--userfile", dest="USERFILE", metavar="USER",
+			help="File for storing author information (257 bytes/author) (default: .import-user)",
+			default=".import-user")
+	parser.add_option("-P", "--pagefile", dest="PAGEFILE", metavar="PAGE",
+			help="File for storing page information (257 bytes/page) (default: .import-page)",
+			default=".import-page")
+	(options, args) = parser.parse_args(args)
+	return (options, args)
 
 def singletext(node):
 	if len(node.childNodes) == 0:
@@ -335,6 +286,7 @@ class BlobWriter:
 			if name == 'page':
 				Page(dom, meta).dump()
 				self.imported += 1
+				IMPORT_MAX = self.meta['options'].IMPORT_MAX
 				if IMPORT_MAX > 0 and self.imported >= IMPORT_MAX:
 					self.expat.StartElementHandler = None
 					self.cancel = True
@@ -362,7 +314,7 @@ class Committer:
 			namespace = asciiize('%d-%s' % (page['flags'], self.meta['meta'].idtons[page['flags']]))
 			title = page['text']
 			subdirtitle = ''
-			for i in range(0, min(DEEPNESS, len(title))):
+			for i in range(0, min(self.meta['options'].DEEPNESS, len(title))):
 				subdirtitle += asciiize(title[i]) + '/'
 			subdirtitle += asciiize(title)
 			filename = namespace + '/' + subdirtitle + '.mediawiki'
@@ -398,14 +350,16 @@ class Committer:
 				)
 			commit += 1
 
-meta = { # FIXME: Use parameters.
-	'meta': Meta(METAFILE),
-	'comm': StringStore(COMMFILE),
-	'user': StringStore(USERFILE),
-	'page': StringStore(PAGEFILE),
-	}
 
-parse_args(sys.argv[1:])
+(options, _args) = parse_args(sys.argv[1:])
+
+meta = { # FIXME: Use parameters.
+	'options': options,
+	'meta': Meta(options.METAFILE),
+	'comm': StringStore(options.COMMFILE),
+	'user': StringStore(options.USERFILE),
+	'page': StringStore(options.PAGEFILE),
+	}
 
 progress('Step 1: Creating blobs.')
 BlobWriter(meta).parse()
