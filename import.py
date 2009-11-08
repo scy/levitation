@@ -287,8 +287,8 @@ class BlobWriter:
 			if name == 'page':
 				Page(dom, meta).dump()
 				self.imported += 1
-				IMPORT_MAX = self.meta['options'].IMPORT_MAX
-				if IMPORT_MAX > 0 and self.imported >= IMPORT_MAX:
+				max = self.meta['options'].IMPORT_MAX
+				if max > 0 and self.imported >= max:
 					self.expat.StartElementHandler = None
 					self.cancel = True
 			elif name == 'base':
