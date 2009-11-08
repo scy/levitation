@@ -52,10 +52,10 @@ Things that work:
  - Use command line options instead of hard-coded magic behavior. Thanks to
    stettberger for adding this.
 
+ - Use a locally timezoned timestamp for the commit date instead of an UTC one.
+
 
 Things that are still missing:
-
- - Use a locally timezoned timestamp for the commit date instead of an UTC one.
 
  - Allow IPv6 addresses as IP edit usernames. (Although afaics MediaWiki itself
    cannot handle IPv6 addresses, so we got some time.)
