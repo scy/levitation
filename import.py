@@ -55,6 +55,18 @@ def parse_args(args):
 	(options, args) = parser.parse_args(args)
 	return (options, args)
 
+def tzoffset():
+	r = time.strftime('%z')
+	if r == '' or r == '%z':
+		return None
+	return r
+
+def tzoffsetorzero():
+	r = tzoffset()
+	if r == None:
+		return '+0000'
+	return r
+
 def singletext(node):
 	if len(node.childNodes) == 0:
 		return ''
@@ -304,6 +316,9 @@ class BlobWriter:
 class Committer:
 	def __init__(self, meta):
 		self.meta = meta
+		if tzoffset() == None:
+			progress('warning: using %s as local time offset since your system refuses to tell me the right one;' \
+				'commit (but not author) times will most likely be wrong' % tzoffsetorzero())
 	def work(self):
 		rev = commit = 1
 		day = ''
@@ -346,7 +361,7 @@ class Committer:
 				'commit refs/heads/master\n' +
 				'mark :%d\n' % commit +
 				'author %s <%s@git.%s> %d +0000\n' % (author, authoruid, self.meta['meta'].domain, meta['epoch']) +
-				'committer %s %d +0000\n' % (self.meta['options'].COMMITTER, time.time()) +
+				'committer %s %d %s\n' % (self.meta['options'].COMMITTER, time.time(), tzoffsetorzero()) +
 				'data %d\n%s\n' % (len(msg), msg) +
 				fromline +
 				'M 100644 :%d %s\n' % (meta['rev'] + 1, filename)
