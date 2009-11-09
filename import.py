@@ -164,12 +164,17 @@ class StringStore:
 	def read(self, id):
 		self.fh.seek(id * self.struct.size)
 		packed = self.fh.read(self.struct.size)
-		data = self.struct.unpack(packed)
-		d = {
-			'len':   data[0],
-			'flags': data[1],
-			'text':  data[2][0:data[0]]
-			}
+		data = None
+		if len(packed) < self.struct.size:
+			# There is no such entry.
+			d = {'len': 0, 'flags': 0, 'text': ''}
+		else:
+			data = self.struct.unpack(packed)
+			d = {
+				'len':   data[0],
+				'flags': data[1],
+				'text':  data[2][0:data[0]]
+				}
 		return d
 
 class User:
