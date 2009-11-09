@@ -7,7 +7,7 @@
 
 
 import xml.dom.minidom
-from xml.parsers.expat import ParserCreate
+import xml.sax
 from calendar import timegm
 import codecs
 import datetime
@@ -20,11 +20,10 @@ import time
 import urlparse
 from optparse import OptionParser
 
-# How many bytes to read at once. You probably can leave this alone.
-# FIXME: With smaller READ_SIZE this tends to crash on the final read?
-READ_SIZE = 10240000
 # The encoding for input, output and internal representation. Leave alone.
 ENCODING = 'UTF-8'
+# The XML namespace we support.
+XMLNS = 'http://www.mediawiki.org/xml/export-0.4/'
 
 
 def parse_args(args):
@@ -241,7 +240,7 @@ class Page:
 		self.title = self.fulltitle = ''
 		self.meta = meta
 		self.dom = dom
-		for lv1 in self.dom.documentElement.childNodes:
+		for lv1 in self.dom.childNodes:
 			if lv1.nodeType != lv1.ELEMENT_NODE:
 				continue
 			if lv1.tagName == 'title':
@@ -263,61 +262,102 @@ class Page:
 		for revision in self.revisions:
 			revision.dump()
 
-class BlobWriter:
+class XMLError(ValueError):
+	pass
+
+class BlobWriter(xml.sax.handler.ContentHandler):
 	def __init__(self, meta):
-		self.text = self.xml = None
-		self.intag = self.lastattrs = None
-		self.cancel = False
-		self.startbyte = self.readbytes = self.imported = 0
+		self.imported = 0
 		self.meta = meta
-		self.fh = codecs.getreader(ENCODING)(sys.stdin)
-		self.expat = ParserCreate(ENCODING)
-		self.expat.StartElementHandler = self.find_start
+		self.sax = self.dom = None
+		self.handlers = [self.in_doc]
 	def parse(self):
-		while True:
-			self.text = self.fh.read(READ_SIZE).encode(ENCODING)
-			if not self.text:
-				break
-			self.startbyte = 0
-			self.expat.Parse(self.text)
-			if self.cancel:
+		self.sax = xml.sax.make_parser()
+		self.sax.setFeature(xml.sax.handler.feature_namespaces, True)
+		self.sax.setContentHandler(self)
+		self.sax.parse(sys.stdin)
+	def runHandler(self, name, attrs):
+		# Select the last element on the handler stack.
+		pos = len(self.handlers) - 1
+		# Check whether we have more closing tags than opening.
+		if pos < 0:
+			raise XMLError('more closing than opening tags')
+		# Check the namespace.
+		if not name[0] == XMLNS:
+			if pos > 0:
+				# If this is not the root element, simply ignore it.
 				return
-			if self.intag:
-				self.xml += self.text[self.startbyte:]
-			self.readbytes += len(self.text)
-		self.expat.Parse('', True)
-	def find_start(self, name, attrs):
-		if name in ('page', 'base', 'namespace'):
-			self.intag = name
-			self.lastattrs = attrs
-			self.expat.StartElementHandler = None
-			self.expat.EndElementHandler = self.find_end
-			self.startbyte = self.expat.CurrentByteIndex - self.readbytes
-			self.xml = ''
-	def find_end(self, name):
-		if name == self.intag:
-			self.intag = None
-			self.expat.StartElementHandler = self.find_start
-			self.expat.EndElementHandler = None
-			endbyte = self.expat.CurrentByteIndex - self.readbytes
-			self.xml += self.text[self.startbyte:endbyte] + '</' + name.encode(ENCODING) + '>'
-			if self.startbyte == endbyte:
-				self.xml = '<' + name.encode(ENCODING) + ' />'
-			dom = xml.dom.minidom.parseString(self.xml)
-			if name == 'page':
-				Page(dom, meta).dump()
-				self.imported += 1
-				max = self.meta['options'].IMPORT_MAX
-				if max > 0 and self.imported >= max:
-					self.expat.StartElementHandler = None
-					self.cancel = True
-			elif name == 'base':
-				self.meta['meta'].domain = urlparse.urlparse(singletext(dom.documentElement)).hostname.encode(ENCODING)
-			elif name == 'namespace':
-				k = int(self.lastattrs['key'])
-				v = singletext(dom.documentElement).encode(ENCODING)
-				self.meta['meta'].idtons[k] = v
-				self.meta['meta'].nstoid[v] = k
+			else:
+				# If this is the root element, refuse to parse it.
+				raise XMLError('XML document needs to be in MediaWiki Export Format 0.4')
+		handler = self.handlers[pos]
+		# If there is no handler, this tag shall be ignored.
+		if handler == None:
+			return
+		# Run the handler and return its return value (possibly a sub-handler).
+		return handler(name, attrs)
+	def startElementNS(self, name, qname, attrs):
+		# If capturing, add a new element.
+		if self.dom:
+			self.currentnode = self.currentnode.appendChild(self.dom.createElementNS(name[0], name[1]))
+			# FIXME: attributes
+		# Run the handler and add the sub-handler to the handler stack.
+		self.handlers.append(self.runHandler(name, attrs))
+	def endElementNS(self, name, qname):
+		# If capturing, point upwards.
+		if self.dom:
+			self.currentnode = self.currentnode.parentNode
+		# Tell the handler that its element is done.
+		self.runHandler(name, False)
+		# Remove the sub-handler.
+		self.handlers.pop()
+	def characters(self, content):
+		# If capturing, append content.
+		if self.dom:
+			self.currentnode.appendChild(self.dom.createTextNode(content))
+	def captureStart(self, name):
+		self.dom = xml.dom.getDOMImplementation().createDocument(name[0], name[1], None)
+		self.currentnode = self.dom.documentElement
+	def captureGet(self):
+		dom = self.dom
+		self.dom = None
+		dom.documentElement.normalize()
+		return dom.documentElement
+	def in_doc(self, name, attrs):
+		if name[1] == 'mediawiki':
+			return self.in_mediawiki
+		else:
+			raise XMLError('document tag is not <mediawiki>')
+	def in_mediawiki(self, name, attrs):
+		if name[1] == 'siteinfo':
+			return self.in_siteinfo
+		if name[1] == 'page':
+			self.captureStart(name)
+			return self.in_page
+	def in_siteinfo(self, name, attrs):
+		if name[1] == 'base':
+			self.captureStart(name)
+			return self.in_base
+		elif name[1] == 'namespaces':
+			return self.in_namespaces
+	def in_base(self, name, attrs):
+		if attrs == False:
+			self.meta['meta'].domain = urlparse.urlparse(singletext(self.captureGet())).hostname.encode(ENCODING)
+	def in_namespaces(self, name, attrs):
+		if name[1] == 'namespace':
+			self.captureStart(name)
+			self.nskey = int(attrs.getValueByQName('key')) # FIXME: not namespace-safe?
+			return self.in_namespace
+	def in_namespace(self, name, attrs):
+		if attrs == False:
+			v = singletext(self.captureGet()).encode(ENCODING)
+			self.meta['meta'].idtons[self.nskey] = v
+			self.meta['meta'].nstoid[v] = self.nskey
+	def in_page(self, name, attrs):
+		if attrs == False:
+			Page(self.captureGet(), self.meta).dump()
+			self.imported += 1
+			# FIXME: Implement IMPORT_MAX again.
 
 class Committer:
 	def __init__(self, meta):
