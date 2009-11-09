@@ -427,7 +427,7 @@ class Committer:
 
 (options, _args) = parse_args(sys.argv[1:])
 
-meta = { # FIXME: Use parameters.
+meta = {
 	'options': options,
 	'meta': Meta(options.METAFILE),
 	'comm': StringStore(options.COMMFILE),
