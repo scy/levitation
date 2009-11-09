@@ -268,6 +268,7 @@ class XMLError(ValueError):
 class BlobWriter(xml.sax.handler.ContentHandler):
 	def __init__(self, meta):
 		self.imported = 0
+		self.cancelled = False
 		self.meta = meta
 		self.sax = self.dom = None
 		self.handlers = [self.in_doc]
@@ -275,7 +276,11 @@ class BlobWriter(xml.sax.handler.ContentHandler):
 		self.sax = xml.sax.make_parser()
 		self.sax.setFeature(xml.sax.handler.feature_namespaces, True)
 		self.sax.setContentHandler(self)
-		self.sax.parse(sys.stdin)
+		try:
+			self.sax.parse(sys.stdin)
+		except ValueError as e:
+			if not self.cancelled:
+				raise e
 	def runHandler(self, name, attrs):
 		# Select the last element on the handler stack.
 		pos = len(self.handlers) - 1
@@ -357,7 +362,10 @@ class BlobWriter(xml.sax.handler.ContentHandler):
 		if attrs == False:
 			Page(self.captureGet(), self.meta).dump()
 			self.imported += 1
-			# FIXME: Implement IMPORT_MAX again.
+			max = self.meta['options'].IMPORT_MAX
+			if max > 0 and self.imported >= max:
+				self.cancelled = True
+				sys.stdin.close()
 
 class Committer:
 	def __init__(self, meta):
