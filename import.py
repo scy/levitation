@@ -163,7 +163,8 @@ class StringStore:
 			self.maxid = id
 	def read(self, id):
 		self.fh.seek(id * self.struct.size)
-		data = self.struct.unpack(self.fh.read(self.struct.size))
+		packed = self.fh.read(self.struct.size)
+		data = self.struct.unpack(packed)
 		d = {
 			'len':   data[0],
 			'flags': data[1],
@@ -324,11 +325,11 @@ class Committer:
 		day = ''
 		while rev <= self.meta['meta'].maxrev:
 			meta = self.meta['meta'].read(rev)
-			comm = self.meta['comm'].read(rev)
 			rev += 1
 			if not meta['exists']:
 				continue
 			page = self.meta['page'].read(meta['page'])
+			comm = self.meta['comm'].read(meta['rev'])
 			namespace = asciiize('%d-%s' % (page['flags'], self.meta['meta'].idtons[page['flags']]))
 			title = page['text']
 			subdirtitle = ''
