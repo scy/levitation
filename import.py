@@ -305,7 +305,9 @@ class BlobWriter(xml.sax.handler.ContentHandler):
 		# If capturing, add a new element.
 		if self.dom:
 			self.currentnode = self.currentnode.appendChild(self.dom.createElementNS(name[0], name[1]))
-			# FIXME: attributes
+			for k in attrs.getNames():
+				v = attrs.getValue(k)
+				self.currentnode.setAttributeNS(k[0], k[1], v)
 		# Run the handler and add the sub-handler to the handler stack.
 		self.handlers.append(self.runHandler(name, attrs))
 	def endElementNS(self, name, qname):
