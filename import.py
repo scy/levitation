@@ -266,7 +266,10 @@ class BlobWriter(xml.sax.handler.ContentHandler):
 		self.cancelled = False
 		self.meta = meta
 		self.sax = self.dom = self.page = None
-		self.handlers = [self.in_doc]
+		firsthandler = self.in_doc
+		self.handler = firsthandler
+		self.handlers = [firsthandler]
+		self.hpos = 0
 	def parse(self):
 		self.sax = xml.sax.make_parser()
 		self.sax.setFeature(xml.sax.handler.feature_namespaces, True)
@@ -277,25 +280,19 @@ class BlobWriter(xml.sax.handler.ContentHandler):
 			if not self.cancelled:
 				raise e
 	def runHandler(self, name, attrs):
-		# Select the last element on the handler stack.
-		pos = len(self.handlers) - 1
-		# Check whether we have more closing tags than opening.
-		if pos < 0:
-			raise XMLError('more closing than opening tags')
 		# Check the namespace.
 		if not name[0] == XMLNS:
-			if pos > 0:
+			if self.hpos > 0:
 				# If this is not the root element, simply ignore it.
 				return
 			else:
 				# If this is the root element, refuse to parse it.
 				raise XMLError('XML document needs to be in MediaWiki Export Format 0.4')
-		handler = self.handlers[pos]
 		# If there is no handler, this tag shall be ignored.
-		if handler == None:
+		if self.handler == None:
 			return
 		# Run the handler and return its return value (possibly a sub-handler).
-		return handler(name, attrs)
+		return self.handler(name, attrs)
 	def startElementNS(self, name, qname, attrs):
 		# If capturing, add a new element.
 		if self.dom:
@@ -304,7 +301,10 @@ class BlobWriter(xml.sax.handler.ContentHandler):
 				v = attrs.getValue(k)
 				self.currentnode.setAttributeNS(k[0], k[1], v)
 		# Run the handler and add the sub-handler to the handler stack.
-		self.handlers.append(self.runHandler(name, attrs))
+		nexthandler = self.runHandler(name, attrs)
+		self.handlers.append(nexthandler)
+		self.hpos += 1
+		self.handler = nexthandler
 	def endElementNS(self, name, qname):
 		# If capturing, point upwards.
 		if self.dom:
@@ -313,6 +313,12 @@ class BlobWriter(xml.sax.handler.ContentHandler):
 		self.runHandler(name, False)
 		# Remove the sub-handler.
 		self.handlers.pop()
+		self.hpos -= 1
+		# Check whether we have more closing tags than opening.
+		if self.hpos < 0:
+			raise XMLError('more closing than opening tags')
+		# Update the current handler.
+		self.handler = self.handlers[self.hpos]
 	def characters(self, content):
 		# If capturing, append content.
 		if self.dom:
