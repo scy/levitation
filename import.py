@@ -381,7 +381,7 @@ class BlobWriter(xml.sax.handler.ContentHandler):
 	def in_title(self, name, attrs):
 		if attrs == False:
 			self.page.setTitle(singletext(self.captureGet()).encode(ENCODING))
-			progress('   ' + self.page.title)
+			progress('   ' + self.page.fulltitle)
 	def in_page_id(self, name, attrs):
 		if attrs == False:
 			self.page.setID(int(singletext(self.captureGet())))
