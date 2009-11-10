@@ -233,34 +233,29 @@ class Revision:
 		out(mydata + '\n')
 
 class Page:
-	def __init__(self, dom, meta):
-		self.revisions = []
-		self.id = -1
-		self.nsid = 0
+	def __init__(self, meta):
 		self.title = self.fulltitle = ''
+		self.nsid = 0
+		self.id = -1
 		self.meta = meta
-		self.dom = dom
-		for lv1 in self.dom.childNodes:
-			if lv1.nodeType != lv1.ELEMENT_NODE:
-				continue
-			if lv1.tagName == 'title':
-				self.fulltitle = singletext(lv1).encode(ENCODING)
-				split = self.fulltitle.split(':', 1)
-				if len(split) > 1 and self.meta['meta'].nstoid.has_key(split[0]):
-					self.nsid = self.meta['meta'].nstoid[split[0]]
-					self.title = split[1]
-				else:
-					self.nsid = self.meta['meta'].nstoid['']
-					self.title = self.fulltitle
-			elif lv1.tagName == 'id':
-				self.id = int(singletext(lv1))
-			elif lv1.tagName == 'revision':
-				self.revisions.append(Revision(lv1, self.id, self.meta))
-		self.meta['page'].write(self.id, self.title, self.nsid)
-	def dump(self):
-		progress('   ' + self.fulltitle)
-		for revision in self.revisions:
-			revision.dump()
+	def setTitle(self, title):
+		self.fulltitle = title
+		split = self.fulltitle.split(':', 1)
+		if len(split) > 1 and self.meta['meta'].nstoid.has_key(split[0]):
+			self.nsid = self.meta['meta'].nstoid[split[0]]
+			self.title = split[1]
+		else:
+			self.nsid = self.meta['meta'].nstoid['']
+			self.title = self.fulltitle
+	def setID(self, id):
+		self.id = id
+		self.saveTitle()
+	def saveTitle(self):
+		if self.id != -1 and self.title != '':
+			self.meta['page'].write(self.id, self.title, self.nsid)
+	def addRevision(self, dom):
+		r = Revision(dom, self.id, self.meta)
+		r.dump()
 
 class XMLError(ValueError):
 	pass
@@ -270,7 +265,7 @@ class BlobWriter(xml.sax.handler.ContentHandler):
 		self.imported = 0
 		self.cancelled = False
 		self.meta = meta
-		self.sax = self.dom = None
+		self.sax = self.dom = self.page = None
 		self.handlers = [self.in_doc]
 	def parse(self):
 		self.sax = xml.sax.make_parser()
@@ -339,7 +334,7 @@ class BlobWriter(xml.sax.handler.ContentHandler):
 		if name[1] == 'siteinfo':
 			return self.in_siteinfo
 		if name[1] == 'page':
-			self.captureStart(name)
+			self.page = Page(self.meta)
 			return self.in_page
 	def in_siteinfo(self, name, attrs):
 		if name[1] == 'base':
@@ -362,12 +357,31 @@ class BlobWriter(xml.sax.handler.ContentHandler):
 			self.meta['meta'].nstoid[v] = self.nskey
 	def in_page(self, name, attrs):
 		if attrs == False:
-			Page(self.captureGet(), self.meta).dump()
 			self.imported += 1
 			max = self.meta['options'].IMPORT_MAX
 			if max > 0 and self.imported >= max:
 				self.cancelled = True
 				sys.stdin.close()
+		else:
+			if name[1] == 'title':
+				self.captureStart(name)
+				return self.in_title
+			if name[1] == 'id':
+				self.captureStart(name)
+				return self.in_page_id
+			if name[1] == 'revision':
+				self.captureStart(name)
+				return self.in_revision
+	def in_title(self, name, attrs):
+		if attrs == False:
+			self.page.setTitle(singletext(self.captureGet()).encode(ENCODING))
+			progress('   ' + self.page.title)
+	def in_page_id(self, name, attrs):
+		if attrs == False:
+			self.page.setID(int(singletext(self.captureGet())))
+	def in_revision(self, name, attrs):
+		if attrs == False:
+			self.page.addRevision(self.captureGet())
 
 class Committer:
 	def __init__(self, meta):
