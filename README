@@ -24,6 +24,9 @@ Wikimedia does not offer content SQL dumps anymore, and there are now full-
 history dump for en.wikipedia.org because of its size.) It includes all pages
 in all namespaces and all of their revisions.
 
+Alternatively, you may use a MediaWiki’s “Special:Export” page to create an XML
+dump of certain pages.
+
 
 Things that work:
 
