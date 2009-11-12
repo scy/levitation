@@ -56,6 +56,9 @@ Most people suggest “one repo per article”. That’s probably the best “li
 there is, but how would you then move/rename/merge articles without losing
 history?
 
+Also, because of the way git-fast-import works, importing into several
+repositories at the same time is not trivial.
+
 Currently, this project is about mapping a MediaWiki history to a Git history
 while losing as litte information as possible. As soon as that works, we could
 think about using git-filter-branch or something like that to split it into
