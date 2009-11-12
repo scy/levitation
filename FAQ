@@ -1,3 +1,45 @@
+Since Levitation is not only a software project, but also the first effort to
+create something like “a new era for Wikipedia”, namely by allowing multiple,
+different articles under the same title, and by allowing distributed work, I am
+also asked a lot about my plans for this future Wikipedia structure. Therefore
+this FAQ also contain answers to some of those questions.
+
+
+
+
+
+========== QUESTIONS CONCERNING THE NEW WIKIPEDIA ERA ==========
+
+
+
+What is the Omnipedia?
+----------------------
+
+The Omnipedia is a fictional website that serves as my example for how this new
+Wikipedia model could work.
+
+
+
+In your model, will every contributor need a Git clone of the whole Omnipedia?
+------------------------------------------------------------------------------
+
+No. In fact, I’m suggesting that there will be a central web site, just like it
+is right now. But every registered user will have his or her own branch to
+create content in. And to facilitate easy forking and merging, access via Git
+should be possible.
+
+You may compare it to identi.ca and StatusNet: You have the possibility to run
+the software on your own machine, but you are not forced to, and most users
+simply use the central site.
+
+
+
+
+
+========== QUESTIONS CONCERNING LEVITATION ==========
+
+
+
 What’s the project’s current status?
 ------------------------------------
 
