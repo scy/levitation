@@ -270,6 +270,7 @@ class BlobWriter(xml.sax.handler.ContentHandler):
 		self.handler = firsthandler
 		self.handlers = [firsthandler]
 		self.hpos = 0
+		self.text = None
 	def parse(self):
 		self.sax = xml.sax.make_parser()
 		self.sax.setFeature(xml.sax.handler.feature_namespaces, True)
@@ -296,6 +297,7 @@ class BlobWriter(xml.sax.handler.ContentHandler):
 	def startElementNS(self, name, qname, attrs):
 		# If capturing, add a new element.
 		if self.dom:
+			self.finishText()
 			self.currentnode = self.currentnode.appendChild(self.dom.createElementNS(name[0], name[1]))
 			for k in attrs.getNames():
 				v = attrs.getValue(k)
@@ -308,6 +310,7 @@ class BlobWriter(xml.sax.handler.ContentHandler):
 	def endElementNS(self, name, qname):
 		# If capturing, point upwards.
 		if self.dom:
+			self.finishText()
 			self.currentnode = self.currentnode.parentNode
 		# Tell the handler that its element is done.
 		self.runHandler(name, False)
@@ -320,16 +323,23 @@ class BlobWriter(xml.sax.handler.ContentHandler):
 		# Update the current handler.
 		self.handler = self.handlers[self.hpos]
 	def characters(self, content):
-		# If capturing, append content.
+		# If capturing, append content to internal text buffer.
 		if self.dom:
-			self.currentnode.appendChild(self.dom.createTextNode(content))
+			if self.text == None:
+				self.text = content
+			else:
+				self.text += content
+	def finishText(self):
+		# Called before something that ends a text node is added.
+		if not self.text == None:
+			self.currentnode.appendChild(self.dom.createTextNode(self.text))
+			self.text = None
 	def captureStart(self, name):
 		self.dom = xml.dom.getDOMImplementation().createDocument(name[0], name[1], None)
 		self.currentnode = self.dom.documentElement
 	def captureGet(self):
 		dom = self.dom
 		self.dom = None
-		dom.documentElement.normalize()
 		return dom.documentElement
 	def in_doc(self, name, attrs):
 		if name[1] == 'mediawiki':
