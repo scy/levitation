@@ -51,6 +51,9 @@ def parse_args(args):
 	parser.add_option("-P", "--pagefile", dest="PAGEFILE", metavar="PAGE",
 			help="File for storing page information (257 bytes/page) (default: .import-page)",
 			default=".import-page")
+	parser.add_option("-w", "--wikicommittime", dest="WIKITIME", metavar="WIKITIME",
+			help="When set the commit time from the wikidump will be used instead of the current time", action="store_true",
+			default=False)
 	(options, args) = parser.parse_args(args)
 	return (options, args)
 
@@ -443,11 +446,20 @@ class Committer:
 			else:
 				authoruid = 'uid-' + str(meta['user'])
 				author = self.meta['user'].read(meta['user'])['text']
+			# Check which committime should be used
+			if self.meta['options'].WIKITIME:
+				# Use the committime read from the dumpfile
+				committime = meta['epoch']
+				offset = '+0000'
+			else:
+				# Use the current systemtime
+				committime = time.time()
+				offset = tzoffsetorzero()
 			out(
 				'commit refs/heads/master\n' +
 				'mark :%d\n' % commit +
 				'author %s <%s@git.%s> %d +0000\n' % (author, authoruid, self.meta['meta'].domain, meta['epoch']) +
-				'committer %s %d %s\n' % (self.meta['options'].COMMITTER, time.time(), tzoffsetorzero()) +
+				'committer %s %d %s\n' % (self.meta['options'].COMMITTER, committime, offset) +
 				'data %d\n%s\n' % (len(msg), msg) +
 				fromline +
 				'M 100644 :%d %s\n' % (meta['rev'] + 1, filename)
