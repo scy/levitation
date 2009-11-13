@@ -277,9 +277,9 @@ class BlobWriter(xml.sax.handler.ContentHandler):
 		self.sax.setContentHandler(self)
 		try:
 			self.sax.parse(sys.stdin)
-		except ValueError as e:
+		except ValueError:
 			if not self.cancelled:
-				raise e
+				raise
 	def runHandler(self, name, attrs):
 		# Check the namespace.
 		if not name[0] == XMLNS:
