@@ -241,7 +241,7 @@ class Page:
 	def setTitle(self, title):
 		self.fulltitle = title
 		split = self.fulltitle.split(':', 1)
-		if len(split) > 1 and self.meta['meta'].nstoid.has_key(split[0]):
+		if len(split) > 1 and (split[0] in self.meta['meta'].nstoid):
 			self.nsid = self.meta['meta'].nstoid[split[0]]
 			self.title = split[1]
 		else:
