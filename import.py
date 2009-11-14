@@ -39,6 +39,9 @@ def parse_args(args):
 	parser.add_option("-c", "--committer", dest="COMMITTER", metavar="COMITTER",
 			help="git \"Committer\" used while doing the commits (default: \"Levitation <levitation@scytale.name>\")",
 			default="Levitation <levitation@scytale.name>")
+	parser.add_option("-w", "--wikitime", dest="WIKITIME",
+			help="When set, the commit time will be set to the revision creation, not the current system time", action="store_true",
+			default=False)
 	parser.add_option("-M", "--metafile", dest="METAFILE", metavar="META",
 			help="File for storing meta information (17 bytes/rev) (default: .import-meta)",
 			default=".import-meta")
@@ -51,9 +54,6 @@ def parse_args(args):
 	parser.add_option("-P", "--pagefile", dest="PAGEFILE", metavar="PAGE",
 			help="File for storing page information (257 bytes/page) (default: .import-page)",
 			default=".import-page")
-	parser.add_option("-w", "--wikicommittime", dest="WIKITIME", metavar="WIKITIME",
-			help="When set the commit time from the wikidump will be used instead of the current time", action="store_true",
-			default=False)
 	(options, args) = parser.parse_args(args)
 	return (options, args)
 
