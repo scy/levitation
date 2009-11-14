@@ -7,7 +7,7 @@
 
 
 import xml.dom.minidom
-import xml.sax
+import xml.parsers.expat
 from calendar import timegm
 import codecs
 import datetime
@@ -24,6 +24,8 @@ from optparse import OptionParser
 ENCODING = 'UTF-8'
 # The XML namespace we support.
 XMLNS = 'http://www.mediawiki.org/xml/export-0.4/'
+# Namespace separator for Expat.
+NSSEPA = ' '
 
 
 def parse_args(args):
@@ -263,26 +265,36 @@ class Page:
 class XMLError(ValueError):
 	pass
 
-class BlobWriter(xml.sax.handler.ContentHandler):
+class CancelException(StandardError):
+	pass
+
+class BlobWriter:
 	def __init__(self, meta):
 		self.imported = 0
 		self.cancelled = False
 		self.meta = meta
-		self.sax = self.dom = self.page = None
+		self.expat = self.dom = self.page = None
 		firsthandler = self.in_doc
 		self.handler = firsthandler
 		self.handlers = [firsthandler]
 		self.hpos = 0
 		self.text = None
 	def parse(self):
-		self.sax = xml.sax.make_parser()
-		self.sax.setFeature(xml.sax.handler.feature_namespaces, True)
-		self.sax.setContentHandler(self)
+		self.expat = xml.parsers.expat.ParserCreate(namespace_separator = NSSEPA)
+		self.expat.StartElementHandler  = self.startElement
+		self.expat.EndElementHandler    = self.endElement
+		self.expat.CharacterDataHandler = self.characters
 		try:
-			self.sax.parse(sys.stdin)
-		except ValueError:
+			self.expat.ParseFile(sys.stdin)
+		except CancelException:
 			if not self.cancelled:
 				raise
+	def nsSplit(self, name):
+		s = name.split(NSSEPA)
+		if len(s) == 2:
+			return (s[0], s[1])
+		else:
+			return ('', s[0])
 	def runHandler(self, name, attrs):
 		# Check the namespace.
 		if not name[0] == XMLNS:
@@ -297,20 +309,22 @@ class BlobWriter(xml.sax.handler.ContentHandler):
 			return
 		# Run the handler and return its return value (possibly a sub-handler).
 		return self.handler(name, attrs)
-	def startElementNS(self, name, qname, attrs):
+	def startElement(self, name, attrs):
+		name = self.nsSplit(name)
 		# If capturing, add a new element.
 		if self.dom:
 			self.finishText()
 			self.currentnode = self.currentnode.appendChild(self.dom.createElementNS(name[0], name[1]))
-			for k in attrs.getNames():
-				v = attrs.getValue(k)
-				self.currentnode.setAttributeNS(k[0], k[1], v)
+			for k, v in attrs.iteritems():
+				sk = self.nsSplit(k)
+				self.currentnode.setAttributeNS(sk[0], sk[1], v)
 		# Run the handler and add the sub-handler to the handler stack.
 		nexthandler = self.runHandler(name, attrs)
 		self.handlers.append(nexthandler)
 		self.hpos += 1
 		self.handler = nexthandler
-	def endElementNS(self, name, qname):
+	def endElement(self, name):
+		name = self.nsSplit(name)
 		# If capturing, point upwards.
 		if self.dom:
 			self.finishText()
@@ -367,7 +381,7 @@ class BlobWriter(xml.sax.handler.ContentHandler):
 	def in_namespaces(self, name, attrs):
 		if name[1] == 'namespace':
 			self.captureStart(name)
-			self.nskey = int(attrs.getValueByQName('key')) # FIXME: not namespace-safe?
+			self.nskey = int(attrs['key']) # FIXME: not namespace-safe?
 			return self.in_namespace
 	def in_namespace(self, name, attrs):
 		if attrs == False:
@@ -380,7 +394,7 @@ class BlobWriter(xml.sax.handler.ContentHandler):
 			max = self.meta['options'].IMPORT_MAX
 			if max > 0 and self.imported >= max:
 				self.cancelled = True
-				sys.stdin.close()
+				raise CancelException()
 		else:
 			if name[1] == 'title':
 				self.captureStart(name)
