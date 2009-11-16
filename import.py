@@ -290,7 +290,7 @@ class BlobWriter:
 			if not self.cancelled:
 				raise
 	def nsSplit(self, name):
-		s = name.split(NSSEPA)
+		s = name.split(NSSEPA, 1)
 		if len(s) == 2:
 			return (s[0], s[1])
 		else:
