@@ -268,24 +268,47 @@ class XMLError(ValueError):
 class CancelException(StandardError):
 	pass
 
+class ParserHandler:
+	def __init__(self, writer):
+		self.writer = writer
+
+class ExpatHandler(ParserHandler):
+	def run(self, what):
+		self.expat = xml.parsers.expat.ParserCreate(namespace_separator = NSSEPA)
+		self.expat.StartElementHandler  = self.startElement
+		self.expat.EndElementHandler    = self.endElement
+		self.expat.CharacterDataHandler = self.characters
+		self.expat.ParseFile(what)
+	def nsSplit(self, name):
+		s = name.split(NSSEPA, 1)
+		if len(s) == 2:
+			return (s[0], s[1])
+		else:
+			return ('', s[0])
+	def startElement(self, name, attrs):
+		name = self.nsSplit(name)
+		self.writer.startElement(name, attrs)
+	def endElement(self, name):
+		name = self.nsSplit(name)
+		self.writer.endElement(name)
+	def characters(self, data):
+		self.writer.characters(data)
+
 class BlobWriter:
 	def __init__(self, meta):
 		self.imported = 0
 		self.cancelled = False
 		self.meta = meta
-		self.expat = self.dom = self.page = None
+		self.parser = self.dom = self.page = None
 		firsthandler = self.in_doc
 		self.handler = firsthandler
 		self.handlers = [firsthandler]
 		self.hpos = 0
 		self.text = None
-	def parse(self):
-		self.expat = xml.parsers.expat.ParserCreate(namespace_separator = NSSEPA)
-		self.expat.StartElementHandler  = self.startElement
-		self.expat.EndElementHandler    = self.endElement
-		self.expat.CharacterDataHandler = self.characters
+	def parse(self, parser):
+		self.parser = parser(self)
 		try:
-			self.expat.ParseFile(sys.stdin)
+			self.parser.run(sys.stdin)
 		except CancelException:
 			if not self.cancelled:
 				raise
@@ -310,7 +333,6 @@ class BlobWriter:
 		# Run the handler and return its return value (possibly a sub-handler).
 		return self.handler(name, attrs)
 	def startElement(self, name, attrs):
-		name = self.nsSplit(name)
 		# If capturing, add a new element.
 		if self.dom:
 			self.finishText()
@@ -324,7 +346,6 @@ class BlobWriter:
 		self.hpos += 1
 		self.handler = nexthandler
 	def endElement(self, name):
-		name = self.nsSplit(name)
 		# If capturing, point upwards.
 		if self.dom:
 			self.finishText()
@@ -492,7 +513,7 @@ meta = {
 	}
 
 progress('Step 1: Creating blobs.')
-BlobWriter(meta).parse()
+BlobWriter(meta).parse(ExpatHandler)
 
 progress('Step 2: Writing commits.')
 Committer(meta).work()
