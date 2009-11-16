@@ -312,6 +312,8 @@ class LxmlHandler(ParserHandler):
 			return (s[0][1:], s[1])
 		else:
 			return ('', s[0])
+	def close(self):
+		self.lxml = None
 
 class BlobWriter:
 	def __init__(self, meta):
