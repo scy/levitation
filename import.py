@@ -7,7 +7,6 @@
 
 
 import xml.dom.minidom
-import xml.parsers.expat
 from calendar import timegm
 import codecs
 import datetime
@@ -56,6 +55,9 @@ def parse_args(args):
 	parser.add_option("-P", "--pagefile", dest="PAGEFILE", metavar="PAGE",
 			help="File for storing page information (257 bytes/page) (default: .import-page)",
 			default=".import-page")
+	parser.add_option("--no-lxml", dest="NOLXML",
+			help="Do not use the lxml parser, even if it is available", action="store_true",
+			default=False)
 	(options, args) = parser.parse_args(args)
 	return (options, args)
 
@@ -271,13 +273,27 @@ class CancelException(StandardError):
 class ParserHandler:
 	def __init__(self, writer):
 		self.writer = writer
+	def attrSplit(self, attrs):
+		r = {}
+		for k, v in attrs.iteritems():
+			nk = self.nsSplit(k)
+			r[nk] = v
+		return r
+	def start(self, name, attrs):
+		name = self.nsSplit(name)
+		self.writer.startElement(name, self.attrSplit(attrs))
+	def end(self, name):
+		name = self.nsSplit(name)
+		self.writer.endElement(name)
+	def data(self, data):
+		self.writer.characters(data)
 
 class ExpatHandler(ParserHandler):
 	def run(self, what):
 		self.expat = xml.parsers.expat.ParserCreate(namespace_separator = NSSEPA)
-		self.expat.StartElementHandler  = self.startElement
-		self.expat.EndElementHandler    = self.endElement
-		self.expat.CharacterDataHandler = self.characters
+		self.expat.StartElementHandler  = self.start
+		self.expat.EndElementHandler    = self.end
+		self.expat.CharacterDataHandler = self.data
 		self.expat.ParseFile(what)
 	def nsSplit(self, name):
 		s = name.split(NSSEPA, 1)
@@ -285,14 +301,17 @@ class ExpatHandler(ParserHandler):
 			return (s[0], s[1])
 		else:
 			return ('', s[0])
-	def startElement(self, name, attrs):
-		name = self.nsSplit(name)
-		self.writer.startElement(name, attrs)
-	def endElement(self, name):
-		name = self.nsSplit(name)
-		self.writer.endElement(name)
-	def characters(self, data):
-		self.writer.characters(data)
+
+class LxmlHandler(ParserHandler):
+	def run(self, what):
+		self.lxml = etree.XMLParser(target = self)
+		etree.parse(what, self.lxml)
+	def nsSplit(self, name):
+		s = name.split('}', 1)
+		if len(s) == 2:
+			return (s[0][1:], s[1])
+		else:
+			return ('', s[0])
 
 class BlobWriter:
 	def __init__(self, meta):
@@ -312,12 +331,6 @@ class BlobWriter:
 		except CancelException:
 			if not self.cancelled:
 				raise
-	def nsSplit(self, name):
-		s = name.split(NSSEPA, 1)
-		if len(s) == 2:
-			return (s[0], s[1])
-		else:
-			return ('', s[0])
 	def runHandler(self, name, attrs):
 		# Check the namespace.
 		if not name[0] == XMLNS:
@@ -338,8 +351,7 @@ class BlobWriter:
 			self.finishText()
 			self.currentnode = self.currentnode.appendChild(self.dom.createElementNS(name[0], name[1]))
 			for k, v in attrs.iteritems():
-				sk = self.nsSplit(k)
-				self.currentnode.setAttributeNS(sk[0], sk[1], v)
+				self.currentnode.setAttributeNS(k[0], k[1], v)
 		# Run the handler and add the sub-handler to the handler stack.
 		nexthandler = self.runHandler(name, attrs)
 		self.handlers.append(nexthandler)
@@ -402,7 +414,7 @@ class BlobWriter:
 	def in_namespaces(self, name, attrs):
 		if name[1] == 'namespace':
 			self.captureStart(name)
-			self.nskey = int(attrs['key']) # FIXME: not namespace-safe?
+			self.nskey = int(attrs[('', 'key')]) # FIXME: not namespace-safe?
 			return self.in_namespace
 	def in_namespace(self, name, attrs):
 		if attrs == False:
@@ -501,8 +513,24 @@ class Committer:
 				)
 			commit += 1
 
+class SkipParserException(StandardError):
+	pass
+
 
 (options, _args) = parse_args(sys.argv[1:])
+
+# Select parser. Prefer lxml, fall back to Expat.
+PARSER = None
+try:
+	if options.NOLXML:
+		raise SkipParserException()
+	from lxml import etree
+	PARSER = LxmlHandler
+	progress('Using lxml parser.')
+except (ImportError, SkipParserException):
+	import xml.parsers.expat
+	PARSER = ExpatHandler
+	progress('Using Expat parser.')
 
 meta = {
 	'options': options,
@@ -513,7 +541,7 @@ meta = {
 	}
 
 progress('Step 1: Creating blobs.')
-BlobWriter(meta).parse(ExpatHandler)
+BlobWriter(meta).parse(PARSER)
 
 progress('Step 2: Writing commits.')
 Committer(meta).work()
