@@ -25,40 +25,6 @@ ENCODING = 'UTF-8'
 XMLNS = 'http://www.mediawiki.org/xml/export-0.4/'
 
 
-def parse_args(args):
-	usage = 'Usage: git init --bare repo && bzcat pages-meta-history.xml.bz2 | \\\n' \
-	        '       %prog [options] | GIT_DIR=repo git fast-import | sed \'s/^progress //\''
-	parser = OptionParser(usage=usage)
-	parser.add_option("-m", "--max", dest="IMPORT_MAX", metavar="IMPORT_MAX",
-			help="Specify the maxium pages to import, -1 for all (default: 100)",
-			default=100, type="int")
-	parser.add_option("-d", "--deepness", dest="DEEPNESS", metavar="DEEPNESS",
-			help="Specify the deepness of the result directory structure (default: 3)",
-			default=3, type="int")
-	parser.add_option("-c", "--committer", dest="COMMITTER", metavar="COMITTER",
-			help="git \"Committer\" used while doing the commits (default: \"Levitation <levitation@scytale.name>\")",
-			default="Levitation <levitation@scytale.name>")
-	parser.add_option("-w", "--wikitime", dest="WIKITIME",
-			help="When set, the commit time will be set to the revision creation, not the current system time", action="store_true",
-			default=False)
-	parser.add_option("-M", "--metafile", dest="METAFILE", metavar="META",
-			help="File for storing meta information (17 bytes/rev) (default: .import-meta)",
-			default=".import-meta")
-	parser.add_option("-C", "--commfile", dest="COMMFILE", metavar="COMM",
-			help="File for storing comment information (257 bytes/rev) (default: .import-comm)",
-			default=".import-comm")
-	parser.add_option("-U", "--userfile", dest="USERFILE", metavar="USER",
-			help="File for storing author information (257 bytes/author) (default: .import-user)",
-			default=".import-user")
-	parser.add_option("-P", "--pagefile", dest="PAGEFILE", metavar="PAGE",
-			help="File for storing page information (257 bytes/page) (default: .import-page)",
-			default=".import-page")
-	parser.add_option("--no-lxml", dest="NOLXML",
-			help="Do not use the lxml parser, even if it is available", action="store_true",
-			default=False)
-	(options, args) = parser.parse_args(args)
-	return (options, args)
-
 def tzoffset():
 	r = time.strftime('%z')
 	if r == '' or r == '%z':
@@ -514,35 +480,67 @@ class Committer:
 				)
 			commit += 1
 
+class LevitationImport:
+	def __init__(self):
+		(options, _args) = self.parse_args(sys.argv[1:])
+		# Select parser. Prefer lxml, fall back to Expat.
+		parser = None
+		try:
+			if options.NOLXML:
+				raise SkipParserException()
+			from lxml import etree
+			parser = LxmlHandler
+			progress('Using lxml parser.')
+		except (ImportError, SkipParserException):
+			import xml.parsers.expat
+			parser = ExpatHandler
+			progress('Using Expat parser.')
+		meta = {
+			'options': options,
+			'meta': Meta(options.METAFILE),
+			'comm': StringStore(options.COMMFILE),
+			'user': StringStore(options.USERFILE),
+			'page': StringStore(options.PAGEFILE),
+			}
+		progress('Step 1: Creating blobs.')
+		BlobWriter(meta).parse(parser)
+		progress('Step 2: Writing commits.')
+		Committer(meta).work()
+	def parse_args(self, args):
+		usage = 'Usage: git init --bare repo && bzcat pages-meta-history.xml.bz2 | \\\n' \
+		        '       %prog [options] | GIT_DIR=repo git fast-import | sed \'s/^progress //\''
+		parser = OptionParser(usage=usage)
+		parser.add_option("-m", "--max", dest="IMPORT_MAX", metavar="IMPORT_MAX",
+				help="Specify the maxium pages to import, -1 for all (default: 100)",
+				default=100, type="int")
+		parser.add_option("-d", "--deepness", dest="DEEPNESS", metavar="DEEPNESS",
+				help="Specify the deepness of the result directory structure (default: 3)",
+				default=3, type="int")
+		parser.add_option("-c", "--committer", dest="COMMITTER", metavar="COMITTER",
+				help="git \"Committer\" used while doing the commits (default: \"Levitation <levitation@scytale.name>\")",
+				default="Levitation <levitation@scytale.name>")
+		parser.add_option("-w", "--wikitime", dest="WIKITIME",
+				help="When set, the commit time will be set to the revision creation, not the current system time", action="store_true",
+				default=False)
+		parser.add_option("-M", "--metafile", dest="METAFILE", metavar="META",
+				help="File for storing meta information (17 bytes/rev) (default: .import-meta)",
+				default=".import-meta")
+		parser.add_option("-C", "--commfile", dest="COMMFILE", metavar="COMM",
+				help="File for storing comment information (257 bytes/rev) (default: .import-comm)",
+				default=".import-comm")
+		parser.add_option("-U", "--userfile", dest="USERFILE", metavar="USER",
+				help="File for storing author information (257 bytes/author) (default: .import-user)",
+				default=".import-user")
+		parser.add_option("-P", "--pagefile", dest="PAGEFILE", metavar="PAGE",
+				help="File for storing page information (257 bytes/page) (default: .import-page)",
+				default=".import-page")
+		parser.add_option("--no-lxml", dest="NOLXML",
+				help="Do not use the lxml parser, even if it is available", action="store_true",
+				default=False)
+		(options, args) = parser.parse_args(args)
+		return (options, args)
+
 class SkipParserException(StandardError):
 	pass
 
-
-(options, _args) = parse_args(sys.argv[1:])
-
-# Select parser. Prefer lxml, fall back to Expat.
-PARSER = None
-try:
-	if options.NOLXML:
-		raise SkipParserException()
-	from lxml import etree
-	PARSER = LxmlHandler
-	progress('Using lxml parser.')
-except (ImportError, SkipParserException):
-	import xml.parsers.expat
-	PARSER = ExpatHandler
-	progress('Using Expat parser.')
-
-meta = {
-	'options': options,
-	'meta': Meta(options.METAFILE),
-	'comm': StringStore(options.COMMFILE),
-	'user': StringStore(options.USERFILE),
-	'page': StringStore(options.PAGEFILE),
-	}
-
-progress('Step 1: Creating blobs.')
-BlobWriter(meta).parse(PARSER)
-
-progress('Step 2: Writing commits.')
-Committer(meta).work()
+LevitationImport()
