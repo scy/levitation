@@ -23,8 +23,6 @@ from optparse import OptionParser
 ENCODING = 'UTF-8'
 # The XML namespace we support.
 XMLNS = 'http://www.mediawiki.org/xml/export-0.4/'
-# Namespace separator for Expat.
-NSSEPA = ' '
 
 
 def parse_args(args):
@@ -290,13 +288,14 @@ class ParserHandler:
 
 class ExpatHandler(ParserHandler):
 	def run(self, what):
-		self.expat = xml.parsers.expat.ParserCreate(namespace_separator = NSSEPA)
+		self.nssepa = ' '
+		self.expat = xml.parsers.expat.ParserCreate(namespace_separator = self.nssepa)
 		self.expat.StartElementHandler  = self.start
 		self.expat.EndElementHandler    = self.end
 		self.expat.CharacterDataHandler = self.data
 		self.expat.ParseFile(what)
 	def nsSplit(self, name):
-		s = name.split(NSSEPA, 1)
+		s = name.split(self.nssepa, 1)
 		if len(s) == 2:
 			return (s[0], s[1])
 		else:
