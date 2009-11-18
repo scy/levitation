@@ -488,6 +488,7 @@ class LevitationImport:
 		try:
 			if options.NOLXML:
 				raise SkipParserException()
+			global etree
 			from lxml import etree
 			parser = LxmlHandler
 			progress('Using lxml parser.')
