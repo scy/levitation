@@ -149,7 +149,7 @@ class StringStore:
 
 class User:
 	def __init__(self, node, meta):
-		self.id = 4294967295L
+		self.id = 0
 		self.name = None
 		self.isip = self.isdel = False
 		if node.hasAttribute('deleted') and node.getAttribute('deleted') == 'deleted':
@@ -167,7 +167,7 @@ class User:
 				try:
 					self.id = struct.unpack('!I', socket.inet_aton(singletext(lv1)))[0]
 				except (socket.error, UnicodeEncodeError):
-					# IP could not be parsed. Leave ID as -1 then.
+					# IP could not be parsed. Leave ID as 0 then.
 					pass
 		if not (self.isip or self.isdel):
 			meta['user'].write(self.id, self.name)
