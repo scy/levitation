@@ -46,15 +46,6 @@ def singletext(node):
 		raise Exception('singletext child is not text')
 	return node.childNodes[0].data
 
-def asciiize_char(s):
-	r = ''
-	for x in s.group(0):
-		r += '.' + x.encode('hex').upper()
-	return r
-
-def asciiize(s):
-	return re.sub('[^A-Za-z0-9_ ()-]', asciiize_char, s)
-
 def out(text):
 	sys.stdout.write(text)
 
@@ -424,6 +415,10 @@ class Committer:
 		if tzoffset() == None:
 			progress('warning: using %s as local time offset since your system refuses to tell me the right one;' \
 				'commit (but not author) times will most likely be wrong' % tzoffsetorzero())
+	def sanitize(self, s):
+		# Replace slashes with ASCII control char "file separator", which is
+		# illegal in page titles, takes only 1 byte UTF-8 and thus may be used.
+		return s.replace('/', '\x1c')
 	def work(self):
 		rev = commit = 1
 		day = ''
@@ -434,13 +429,13 @@ class Committer:
 				continue
 			page = self.meta['page'].read(meta['page'])
 			comm = self.meta['comm'].read(meta['rev'])
-			namespace = asciiize('%d-%s' % (page['flags'], self.meta['meta'].idtons[page['flags']]))
-			title = page['text']
+			namespace = self.sanitize('%d-%s' % (page['flags'], self.meta['meta'].idtons[page['flags']].decode(ENCODING)))
+			title = page['text'].decode(ENCODING)
 			subdirtitle = ''
 			for i in range(0, min(self.meta['options'].DEEPNESS, len(title))):
-				subdirtitle += asciiize(title[i]) + '/'
-			subdirtitle += asciiize(title)
-			filename = namespace + '/' + subdirtitle + '.mediawiki'
+				subdirtitle += self.sanitize(title[i]) + '/'
+			subdirtitle += self.sanitize(title)
+			filename = namespace + '/' + subdirtitle
 			if meta['minor']:
 				minor = ' (minor)'
 			else:
@@ -478,7 +473,7 @@ class Committer:
 				'committer %s %d %s\n' % (self.meta['options'].COMMITTER, committime, offset) +
 				'data %d\n%s\n' % (len(msg), msg) +
 				fromline +
-				'M 100644 :%d %s\n' % (meta['rev'] + 1, filename)
+				'M 100644 :%d %s\n' % (meta['rev'] + 1, filename.encode(ENCODING))
 				)
 			commit += 1
 
