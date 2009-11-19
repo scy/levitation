@@ -64,7 +64,7 @@ def progress(text):
 
 class Meta:
 	def __init__(self, file):
-		self.struct = struct.Struct('LLLLB')
+		self.struct = struct.Struct('=LLLLB')
 		self.maxrev = -1
 		self.fh = open(file, 'wb+')
 		self.domain = 'unknown.invalid'
@@ -119,7 +119,7 @@ class Meta:
 
 class StringStore:
 	def __init__(self, file):
-		self.struct = struct.Struct('Bb255s')
+		self.struct = struct.Struct('=Bb255s')
 		self.maxid = -1
 		self.fh = open(file, 'wb+')
 	def write(self, id, text, flags = 1):
