@@ -59,8 +59,7 @@ def out(text):
 	sys.stdout.write(text)
 
 def progress(text):
-	out('progress ' + text + '\n')
-	sys.stdout.flush()
+	out('progress ' + datetime.datetime.now().isoformat(' ') + '  ' + text + '\n')
 
 class Meta:
 	def __init__(self, file):
