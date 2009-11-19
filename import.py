@@ -149,7 +149,7 @@ class StringStore:
 
 class User:
 	def __init__(self, node, meta):
-		self.id = -1
+		self.id = 4294967295L
 		self.name = None
 		self.isip = self.isdel = False
 		if node.hasAttribute('deleted') and node.getAttribute('deleted') == 'deleted':
