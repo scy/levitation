@@ -269,8 +269,8 @@ class ExpatHandler(ParserHandler):
 
 class LxmlHandler(ParserHandler):
 	def run(self, what):
-		self.lxml = etree.XMLParser(target = self)
-		etree.parse(what, self.lxml)
+		self.lxml = lxml.etree.XMLParser(target = self)
+		lxml.etree.parse(what, self.lxml)
 	def nsSplit(self, name):
 		s = name.split('}', 1)
 		if len(s) == 2:
@@ -488,8 +488,8 @@ class LevitationImport:
 		try:
 			if options.NOLXML:
 				raise SkipParserException()
-			global etree
-			from lxml import etree
+			global lxml
+			import lxml.etree
 			parser = LxmlHandler
 			progress('Using lxml parser.')
 		except (ImportError, SkipParserException):
