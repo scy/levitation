@@ -267,16 +267,18 @@ class ExpatHandler(ParserHandler):
 		else:
 			return ('', s[0])
 
-class LxmlHandler(ParserHandler):
-	def run(self, what):
-		self.lxml = lxml.etree.XMLParser(target = self)
-		lxml.etree.parse(what, self.lxml)
+class ETreeHandler(ParserHandler):
 	def nsSplit(self, name):
 		s = name.split('}', 1)
 		if len(s) == 2:
 			return (s[0][1:], s[1])
 		else:
 			return ('', s[0])
+
+class LxmlHandler(ETreeHandler):
+	def run(self, what):
+		self.lxml = lxml.etree.XMLParser(target = self)
+		lxml.etree.parse(what, self.lxml)
 	def close(self):
 		self.lxml = None
 
