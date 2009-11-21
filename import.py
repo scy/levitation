@@ -231,6 +231,8 @@ class ParserHandler:
 	def __init__(self, writer):
 		self.writer = writer
 	def attrSplit(self, attrs):
+		if attrs == None:
+			return {}
 		r = {}
 		for k, v in attrs.iteritems():
 			nk = self.nsSplit(k)
@@ -530,7 +532,7 @@ class LevitationImport:
 		        '       %prog [options] | GIT_DIR=repo git fast-import | sed \'s/^progress //\''
 		parser = OptionParser(usage=usage)
 		parser.add_option("-p", "--parser", dest="PARSER", metavar="PARSER",
-				help="Specify the XML parser to use. Available: lxml, expat, auto (default, will choose fastest).",
+				help="Specify the XML parser to use. Available: cetree, lxml, expat, auto (default, will choose fastest).",
 				default="auto", type="str")
 		parser.add_option("-m", "--max", dest="IMPORT_MAX", metavar="IMPORT_MAX",
 				help="Specify the maxium pages to import, -1 for all (default: 100)",
