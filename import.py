@@ -495,12 +495,12 @@ class LevitationImport:
 		(options, _args) = self.parse_args(sys.argv[1:])
 		parser = options.PARSER
 		if parser == 'auto':
-			# Prefer lxml, fall back to Expat.
+			# Prefer lxml, fall back to cElementTree.
 			try:
 				import lxml.etree
 				parser = 'lxml'
 			except ImportError:
-				parser = 'expat'
+				parser = 'cetree'
 		if parser == 'lxml':
 			import lxml.etree
 			parser = LxmlHandler
@@ -532,7 +532,7 @@ class LevitationImport:
 		        '       %prog [options] | GIT_DIR=repo git fast-import | sed \'s/^progress //\''
 		parser = OptionParser(usage=usage)
 		parser.add_option("-p", "--parser", dest="PARSER", metavar="PARSER",
-				help="Specify the XML parser to use. Available: cetree, lxml, expat, auto (default, will choose fastest).",
+				help="Specify the XML parser to use. Available: lxml, cetree, expat, auto (default, will choose fastest).",
 				default="auto", type="str")
 		parser.add_option("-m", "--max", dest="IMPORT_MAX", metavar="IMPORT_MAX",
 				help="Specify the maxium pages to import, -1 for all (default: 100)",
