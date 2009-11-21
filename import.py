@@ -260,16 +260,25 @@ class ExpatHandler(ParserHandler):
 		else:
 			return ('', s[0])
 
-class LxmlHandler(ParserHandler):
-	def run(self, what):
-		self.lxml = etree.XMLParser(target = self)
-		etree.parse(what, self.lxml)
+class ETreeHandler(ParserHandler):
 	def nsSplit(self, name):
 		s = name.split('}', 1)
 		if len(s) == 2:
 			return (s[0][1:], s[1])
 		else:
 			return ('', s[0])
+
+class CElementTreeHandler(ETreeHandler):
+	def run(self, what):
+		self.builder = xml.etree.cElementTree.XMLTreeBuilder(target = self)
+		xml.etree.cElementTree.parse(what, self.builder)
+	def close(self):
+		self.builder = None
+
+class LxmlHandler(ETreeHandler):
+	def run(self, what):
+		self.lxml = lxml.etree.XMLParser(target = self)
+		lxml.etree.parse(what, self.lxml)
 	def close(self):
 		self.lxml = None
 
@@ -479,20 +488,31 @@ class Committer:
 
 class LevitationImport:
 	def __init__(self):
+		global lxml
 		(options, _args) = self.parse_args(sys.argv[1:])
-		# Select parser. Prefer lxml, fall back to Expat.
-		parser = None
-		try:
-			if options.NOLXML:
-				raise SkipParserException()
-			global etree
-			from lxml import etree
+		parser = options.PARSER
+		if parser == 'auto':
+			# Prefer lxml, fall back to Expat.
+			try:
+				import lxml.etree
+				parser = 'lxml'
+			except ImportError:
+				parser = 'expat'
+		if parser == 'lxml':
+			import lxml.etree
 			parser = LxmlHandler
 			progress('Using lxml parser.')
-		except (ImportError, SkipParserException):
+		elif parser == 'expat':
 			import xml.parsers.expat
 			parser = ExpatHandler
 			progress('Using Expat parser.')
+		elif parser == 'cetree':
+			import xml.etree.cElementTree
+			parser = CElementTreeHandler
+			progress('Using cElementTree parser.')
+		else:
+			progress('No such parser.')
+			sys.exit(2)
 		meta = {
 			'options': options,
 			'meta': Meta(options.METAFILE),
@@ -508,6 +528,9 @@ class LevitationImport:
 		usage = 'Usage: git init --bare repo && bzcat pages-meta-history.xml.bz2 | \\\n' \
 		        '       %prog [options] | GIT_DIR=repo git fast-import | sed \'s/^progress //\''
 		parser = OptionParser(usage=usage)
+		parser.add_option("-p", "--parser", dest="PARSER", metavar="PARSER",
+				help="Specify the XML parser to use. Available: lxml, expat, auto (default, will choose fastest).",
+				default="auto", type="str")
 		parser.add_option("-m", "--max", dest="IMPORT_MAX", metavar="IMPORT_MAX",
 				help="Specify the maxium pages to import, -1 for all (default: 100)",
 				default=100, type="int")
@@ -532,9 +555,6 @@ class LevitationImport:
 		parser.add_option("-P", "--pagefile", dest="PAGEFILE", metavar="PAGE",
 				help="File for storing page information (257 bytes/page) (default: .import-page)",
 				default=".import-page")
-		parser.add_option("--no-lxml", dest="NOLXML",
-				help="Do not use the lxml parser, even if it is available", action="store_true",
-				default=False)
 		(options, args) = parser.parse_args(args)
 		return (options, args)
 
