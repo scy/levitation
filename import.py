@@ -295,8 +295,9 @@ class BlobWriter:
 		self.text = None
 	def parse(self, parser):
 		self.parser = parser(self)
+		self.file = sys.stdin if self.meta['options'].INFILE == '-' else open(self.meta['options'].INFILE, 'rb')
 		try:
-			self.parser.run(sys.stdin)
+			self.parser.run(self.file)
 		except CancelException:
 			if not self.cancelled:
 				raise
@@ -543,6 +544,9 @@ class LevitationImport:
 		parser.add_option("-w", "--wikitime", dest="WIKITIME",
 				help="When set, the commit time will be set to the revision creation, not the current system time", action="store_true",
 				default=False)
+		parser.add_option("-I", "--in", dest="INFILE",
+				help="The file to read from (default: \"-\", meaning standard input)",
+				default="-", type="str")
 		parser.add_option("-M", "--metafile", dest="METAFILE", metavar="META",
 				help="File for storing meta information (17 bytes/rev) (default: .import-meta)",
 				default=".import-meta")
