@@ -275,6 +275,13 @@ class ETreeHandler(ParserHandler):
 		else:
 			return ('', s[0])
 
+class CElementTreeHandler(ETreeHandler):
+	def run(self, what):
+		self.builder = xml.etree.cElementTree.XMLTreeBuilder(target = self)
+		xml.etree.cElementTree.parse(what, self.builder)
+	def close(self):
+		self.builder = None
+
 class LxmlHandler(ETreeHandler):
 	def run(self, what):
 		self.lxml = lxml.etree.XMLParser(target = self)
@@ -502,6 +509,10 @@ class LevitationImport:
 			import xml.parsers.expat
 			parser = ExpatHandler
 			progress('Using Expat parser.')
+		elif parser == 'cetree':
+			import xml.etree.cElementTree
+			parser = CElementTreeHandler
+			progress('Using cElementTree parser.')
 		else:
 			progress('No such parser.')
 			sys.exit(2)
