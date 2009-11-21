@@ -561,4 +561,5 @@ class LevitationImport:
 class SkipParserException(StandardError):
 	pass
 
-LevitationImport()
+if __name__ == '__main__':
+	LevitationImport()
