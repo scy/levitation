@@ -1,3 +1,16 @@
+
+
+
+****** PLEASE NOTE ******
+
+This project is no longer actively maintained by its author. See
+<https://workflowy.com/s/jJtGnQ8p3W> for more information about the current
+project status, potential forks and the like.
+
+****** PLEASE NOTE ******
+
+
+
 This is Levitation, a project to convert Wikipedia database dumps into Git
 repositories. It has been successfully tested with a small Wiki
 (bar.wikipedia.org) having 12,200 articles and 104,000 revisions. Importing
@@ -6,7 +19,7 @@ are imported one after the other, it will at most require the amount of memory
 needed to keep all revisions of a single page into memory. You should be safe
 with 1 GB of RAM.
 
-See below (“Things that work”) for the current status.
+See below (“Things that work”) for the status at the time it was abandoned.
 
 Some knowledge of Git is required to use this tool. And you will probably
 need to edit some variables in the source code.
@@ -129,16 +142,13 @@ errors with plenty of space available, that’s what hit you.
 
 Contacting the author:
 
-This monster is written by Tim “Scytale” Weber. It is an experiment, whether the
-current “relevance war” in the German Wikipedia can be ended by decentralizing
-content.
+This monster was written by in 2009 by Tim “Scytale” Weber (today aka “scy”). It
+was an experiment, whether the “relevance war” in the German Wikipedia at that
+time can be ended by decentralizing content. It is no longer actively maintained
+by me.
 
-Find the guys and gals around this project in freenode #levitation, or talk
-directly to me via http://scytale.name/contact/ or Twitter (@Scytale).
-
-Get the most up-to-date code at http://scytale.name/proj/levitation/.
-
-Please also read the FAQ if you have any questions, including “how can I help”.
+Please see <https://workflowy.com/s/jJtGnQ8p3W> for the project’s status and how
+to contact the authors.
 
 
 This whole bunch of tasty bytes is licensed under the terms of the WTFPLv2.
