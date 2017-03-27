@@ -1,0 +1,74 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: levit.at/ion
+
+Resources:
+
+  RedirectBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: levit.at
+      AccessControl: BucketOwnerFullControl
+      WebsiteConfiguration:
+        IndexDocument: index.html
+        RoutingRules:
+        - RedirectRule:
+            HostName: github.com
+            HttpRedirectCode: 302 # temp
+            Protocol: https
+            ReplaceKeyWith: scy/levitation/
+      Tags:
+      - Key: Project
+        Value: levitation
+
+  WWWRedirectBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: www.levit.at
+      AccessControl: BucketOwnerFullControl
+      WebsiteConfiguration:
+        RedirectAllRequestsTo:
+          HostName: levit.at
+      Tags:
+      - Key: Project
+        Value: levitation
+
+  Zone:
+    Type: AWS::Route53::HostedZone
+    Properties:
+      Name: levit.at.
+      HostedZoneTags:
+      - Key: Project
+        Value: levitation
+
+  Records:
+    Type: AWS::Route53::RecordSetGroup
+    Properties:
+      Comment: levit.at
+      HostedZoneId: !Ref Zone
+      RecordSets:
+      # Use the buckets from above to redirect to GitHub
+      - Name: levit.at.
+        Type: A
+        AliasTarget:
+          HostedZoneId: Z1BKCTXD74EZPE # ID for S3 in eu-west-1
+          DNSName: !Sub s3-website-${AWS::Region}.amazonaws.com
+      - Name: www.levit.at.
+        Type: A
+        AliasTarget:
+          HostedZoneId: Z1BKCTXD74EZPE # ID for S3 in eu-west-1
+          DNSName: !Sub s3-website-${AWS::Region}.amazonaws.com
+      # Use Mailgun as the MX
+      - Name: levit.at.
+        Type: MX
+        ResourceRecords:
+        - 10 mxa.mailgun.org
+        - 10 mxb.mailgun.org
+        TTL: 3600
+      - Name: levit.at.
+        Type: TXT
+        ResourceRecords: [ '"v=spf1 include:mailgun.org ~all"' ]
+        TTL: 3600
+      - Name: mx._domainkey.levit.at.
+        Type: TXT
+        ResourceRecords: [ '"k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDx3cttjLs5XthhU53VbNmci4nr/3u0P9ApepR+OcisS1f5rMwgtsNj1ZBIK39Zm26xyPccatzStlaCQp0cU9EaEQoMg+wUH0isKmRE59dforkFp2Kh/85K+Ea0R21bDPES1nNzNDvBp/7CGjM0okeXfWcWgxYcd0WZZgffXlUkbwIDAQAB"' ]
+        TTL: 3600
