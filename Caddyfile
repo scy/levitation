@@ -1,0 +1,9 @@
+# Environment variables:
+#   LEVITATION_ADDR: The address to listen on for the main domain. Should be set
+#     to `levit.at` on production.
+#   LEVITATION_WWW_ADDR: The address to listen on to redirect `www.` to the
+#     correct place. Should be set to `www.levit.at` on production.
+
+{$LEVITATION_ADDR:http://localhost:8009} {$LEVITATION_WWW_ADDR:http://www.levit.at:8009} {
+	redir https://github.com/scy/levitation temporary
+}
